@@ -23,12 +23,14 @@ class PerfilActivity : AppCompatActivity() {
 
                 R.id.nav_inicio -> {
                     startActivity(Intent(this, InicioActivity::class.java))
+                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }
 
                 R.id.nav_historial -> {
                     startActivity(Intent(this, HistorialActivity::class.java))
+                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }

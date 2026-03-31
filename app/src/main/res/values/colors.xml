@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
+    <color name="black">#334155</color> // color para el texto en modo claro
     <color name="white">#FFFFFFFF</color>
 
     <color name="gray">#9CA3AF</color>
     <color name="orange">#FF6A00</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="gris_claro">#475569</color>
+    <color name="card_green">#DCFCE7</color>
+    <color name="color_app">#4CAF50</color>
 </resources>

@@ -1,12 +1,19 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.NutriVision" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
 
+    <style name="Base.Theme.NutriVision" parent="Theme.Material3.DayNight.NoActionBar">
+
+        <!-- Color principal de la app -->
+        <item name="colorPrimary">@color/color_app</item>
+
+        <!-- Color de la barra superior -->
+        <item name="android:statusBarColor">@color/color_app</item>
+
+        <!-- Barra inferior del sistema -->
         <item name="android:navigationBarColor">@android:color/white</item>
         <item name="android:windowLightNavigationBar">true</item>
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+
     </style>
 
     <style name="Theme.NutriVision" parent="Base.Theme.NutriVision" />
+
 </resources>

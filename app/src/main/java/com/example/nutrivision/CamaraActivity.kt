@@ -27,6 +27,7 @@ class CamaraActivity : AppCompatActivity() {
 
                 R.id.nav_inicio -> {
                     startActivity(Intent(this, InicioActivity::class.java))
+                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }
@@ -35,6 +36,7 @@ class CamaraActivity : AppCompatActivity() {
 
                 R.id.nav_perfil -> {
                     startActivity(Intent(this, PerfilActivity::class.java))
+                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }
@@ -49,6 +51,7 @@ class CamaraActivity : AppCompatActivity() {
 
         val btnVolver = findViewById<ImageButton>(R.id.btnVolver)
         btnVolver.setOnClickListener {
+            overridePendingTransition(0, 0)
             finish()
         }
     }
