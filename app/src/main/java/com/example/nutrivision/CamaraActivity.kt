@@ -21,7 +21,7 @@ class CamaraActivity : AppCompatActivity() {
         //menu barra de navegacion
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
         // Marcar que estamos en inicio
-        bottomNav.selectedItemId = R.id.nav_historial
+        bottomNav.selectedItemId = R.id.nav_inicio
         bottomNav.setOnItemSelectedListener {
             when (it.itemId) {
 
