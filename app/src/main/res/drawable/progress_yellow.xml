@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/drawable/progress_yellow.xml -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <corners android:radius="8dp"/>
+            <solid android:color="#FEF2F2"/>
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <corners android:radius="8dp"/>
+                <solid android:color="#FACC15"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>
