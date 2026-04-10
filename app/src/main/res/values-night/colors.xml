@@ -9,4 +9,13 @@
     <color name="gris_claro">#CBD5E1</color>
     <color name="card_green">#14532D</color>
 
+    <color name="screen_background">#121212</color>
+    <color name="surface_soft">#1F1F1F</color>
+    <color name="chip_bg">#262626</color>
+    <color name="chip_border">#404040</color>
+    <color name="chip_selected_bg">#17331C</color>
+    <color name="chip_selected_border">#22C55E</color>
+    <color name="day_cell_marked_bg">#2F2F2F</color>
+    <color name="goal_card_bg">#24160F</color>
+    <color name="success_green">#31E84C</color>
 </resources>
