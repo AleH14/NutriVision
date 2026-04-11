@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#F4F6F9">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="top|center_horizontal"
+            android:paddingTop="8dp"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="24dp">
+
+            <!-- LOGOS-->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:layout_marginTop="8dp">
+
+                <ImageView
+                    android:id="@+id/ivLogo"
+                    android:layout_width="140dp"
+                    android:layout_height="90dp"
+                    android:src="@drawable/logo"
+                    android:scaleType="centerInside"
+                    android:adjustViewBounds="true"
+                    android:alpha="0.95"/>
+
+                <ImageView
+                    android:id="@+id/ivLogoLetra"
+                    android:layout_width="210dp"
+                    android:layout_height="90dp"
+                    android:src="@drawable/logo_letra"
+                    android:scaleType="centerInside"
+                    android:adjustViewBounds="true"
+                    android:layout_marginStart="-25dp"/>
+            </LinearLayout>
+
+            <!-- TITULO -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="¡Bienvenido de vuelta!"
+                android:textColor="#111827"
+                android:textSize="24sp"
+                android:fontFamily="@font/montserrat_bold"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Inicia sesión para continuar"
+                android:textColor="#6B7280"
+                android:textSize="14sp"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="24dp"
+                android:fontFamily="@font/montserrat_regular"/>
+
+            <!-- EMAIL -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/lblEmail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="3dp"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxStrokeColor="#D1D5DB"
+                app:hintTextColor="#9CA3AF"
+                app:errorEnabled="true">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txtEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Correo electrónico"
+                    android:inputType="textEmailAddress"
+                    android:textColor="#111827"
+                    android:fontFamily="@font/montserrat_regular"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- PASSWORD -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/lblPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:endIconMode="password_toggle"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="3dp"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxStrokeColor="#D1D5DB"
+                app:hintTextColor="#9CA3AF"
+                app:errorEnabled="true">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txtPassword"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Contraseña"
+                    android:inputType="textPassword"
+                    android:textColor="#111827"
+                    android:fontFamily="@font/montserrat_regular"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- OLVIDASTE PASSWORD -->
+            <TextView
+                android:id="@+id/txtOlvidarPassword"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="¿Olvidaste tu contraseña?"
+                android:textColor="@color/orange"
+                android:textSize="13sp"
+                android:fontFamily="@font/montserrat_semibold"
+                android:gravity="end"
+                android:padding="6dp"
+                android:clickable="true"/>
+
+            <!-- BOTON -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnIniciarSesion"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="28dp"
+                android:text="Iniciar Sesión"
+                android:textAllCaps="false"
+                android:textSize="17sp"
+                android:textColor="#111827"
+                android:fontFamily="@font/montserrat_bold"
+                app:cornerRadius="20dp"
+                app:elevation="6dp"
+                app:backgroundTint="@color/success_green"
+                android:stateListAnimator="@null"/>
+
+            <!-- SEPARADOR -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="28dp"
+                android:layout_marginBottom="20dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="#D1D5DB"
+                    android:alpha="0.4"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="  O  "
+                    android:textColor="#9CA3AF"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/montserrat_regular"/>
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1"
+                    android:background="#D1D5DB"
+                    android:alpha="0.4"/>
+            </LinearLayout>
+
+            <!-- REGISTRO -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="¿No tienes cuenta? "
+                    android:textColor="#6B7280"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/montserrat_regular"/>
+
+                <TextView
+                    android:id="@+id/btnIrRegistro"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Regístrate"
+                    android:textColor="@color/orange"
+                    android:textSize="14sp"
+                    android:fontFamily="@font/montserrat_bold"
+                    android:clickable="true"/>
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

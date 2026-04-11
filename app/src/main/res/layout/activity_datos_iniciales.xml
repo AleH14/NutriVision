@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/screen_background">
+
+    <!-- BOTÓN BACK -->
+    <TextView
+        android:id="@+id/btnBackPerfil"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:text="‹"
+        android:textSize="32sp"
+        android:textColor="@color/gris_claro"
+        android:gravity="center"
+        android:fontFamily="@font/montserrat_bold"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"/>
+
+    <!-- ICONO CENTRADO -->
+    <ImageView
+        android:id="@+id/ivPerfilIcon"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginTop="24dp"
+        android:src="@drawable/person"
+        android:contentDescription="Icono perfil"
+        app:tint="@color/color_app"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <!-- SCROLL -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        android:overScrollMode="never"
+        app:layout_constraintTop_toBottomOf="@id/ivPerfilIcon"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <!-- TITULO -->
+            <TextView
+                android:id="@+id/txtTitulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Completa tu perfil"
+                android:textColor="@color/black"
+                android:textSize="24sp"
+                android:fontFamily="@font/montserrat_bold"
+                android:layout_marginTop="12dp"/>
+
+            <TextView
+                android:id="@+id/txtSubtitulo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cuéntanos sobre ti para personalizar tu experiencia"
+                android:textColor="@color/gris_claro"
+                android:textSize="14sp"
+                android:fontFamily="@font/montserrat"
+                android:layout_marginTop="6dp"
+                android:layout_marginBottom="24dp"/>
+
+            <!-- EDAD -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/lblEdad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp"
+                app:boxStrokeWidth="2dp"
+                app:boxStrokeWidthFocused="3dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txtEdad"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Edad (años)"
+                    android:inputType="number"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ALTURA -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/lblAltura"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txtAltura"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Altura (cm)"
+                    android:inputType="numberDecimal"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- PESO -->
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/lblPesoActual"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                app:boxCornerRadiusTopStart="16dp"
+                app:boxCornerRadiusTopEnd="16dp"
+                app:boxCornerRadiusBottomStart="16dp"
+                app:boxCornerRadiusBottomEnd="16dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/txtPesoActual"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Peso actual (lb)"
+                    android:inputType="numberDecimal"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- GENERO -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Género"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/btnGeneroMasculino"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:gravity="center"
+                    android:text="👨 Masculino"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnGeneroFemenino"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:gravity="center"
+                    android:text="👩 Femenino"
+                    android:background="@drawable/bg_profile_chip"/>
+            </LinearLayout>
+
+            <!-- ACTIVIDAD -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nivel de Actividad Física"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/btnActividadSedentario"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🛋️ Sedentario"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnActividadLigero"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🚶 Ligero"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnActividadModerado"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="🏃 Moderado"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnActividadIntenso"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="💪 Intenso"
+                    android:gravity="center_vertical"
+                    android:paddingStart="16dp"
+                    android:background="@drawable/bg_profile_chip"/>
+            </LinearLayout>
+
+            <!-- OBJETIVO -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Objetivo Personal"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/btnObjetivoMantener"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="⚖️ Mantener peso"
+                    android:paddingStart="16dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnObjetivoAumentar"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="💪 Aumentar músculo"
+                    android:paddingStart="16dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnObjetivoSubir"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="📈 Subir peso"
+                    android:paddingStart="16dp"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="8dp"
+                    android:background="@drawable/bg_profile_chip"/>
+
+                <TextView
+                    android:id="@+id/btnObjetivoBajar"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="📉 Bajar peso"
+                    android:paddingStart="16dp"
+                    android:gravity="center_vertical"
+                    android:background="@drawable/bg_profile_chip"/>
+            </LinearLayout>
+
+            <!-- BOTÓN -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnGuardarPerfil"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Guardar y continuar"
+                android:textAllCaps="false"
+                android:textSize="17sp"
+                app:cornerRadius="20dp"
+                app:elevation="6dp"
+                app:backgroundTint="@color/success_green"/>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
