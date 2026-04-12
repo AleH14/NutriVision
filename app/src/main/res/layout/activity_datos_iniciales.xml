@@ -32,7 +32,7 @@
         android:layout_height="100dp"
         android:layout_marginTop="24dp"
         android:src="@drawable/person"
-        android:contentDescription="Icono perfil"
+        android:contentDescription="@string/Icono_perfil"
         app:tint="@color/color_app"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,7 +60,7 @@
                 android:id="@+id/txtTitulo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Completa tu perfil"
+                android:text="@string/completa"
                 android:textColor="@color/black"
                 android:textSize="24sp"
                 android:fontFamily="@font/montserrat_bold"
@@ -70,10 +70,10 @@
                 android:id="@+id/txtSubtitulo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Cuéntanos sobre ti para personalizar tu experiencia"
+                android:text="@string/cuenta"
                 android:textColor="@color/gris_claro"
                 android:textSize="14sp"
-                android:fontFamily="@font/montserrat"
+                android:fontFamily="@font/montserrat_regular"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="24dp"/>
 
@@ -95,7 +95,7 @@
                     android:id="@+id/txtEdad"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Edad (años)"
+                    android:hint="@string/edad"
                     android:inputType="number"/>
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -115,7 +115,7 @@
                     android:id="@+id/txtAltura"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Altura (cm)"
+                    android:hint="@string/altura"
                     android:inputType="numberDecimal"/>
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -135,7 +135,7 @@
                     android:id="@+id/txtPesoActual"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:hint="Peso actual (lb)"
+                    android:hint="@string/peso"
                     android:inputType="numberDecimal"/>
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -143,9 +143,10 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Género"
+                android:text="@string/generolbl"
                 android:textStyle="bold"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="8dp"
+                android:fontFamily="@font/montserrat_semibold"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -160,8 +161,9 @@
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     android:gravity="center"
-                    android:text="👨 Masculino"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:text="@string/Masculino"
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnGeneroFemenino"
@@ -170,17 +172,19 @@
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
                     android:gravity="center"
-                    android:text="👩 Femenino"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:text="@string/Femenino"
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
             </LinearLayout>
 
             <!-- ACTIVIDAD -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Nivel de Actividad Física"
+                android:text="@string/n1"
                 android:textStyle="bold"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="8dp"
+                android:fontFamily="@font/montserrat_semibold"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -192,49 +196,58 @@
                     android:id="@+id/btnActividadSedentario"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="🛋️ Sedentario"
+                    android:text="@string/se"
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnActividadLigero"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="🚶 Ligero"
+                    android:text="@string/li"
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnActividadModerado"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="🏃 Moderado"
+                    android:text="@string/mo"
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnActividadIntenso"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="💪 Intenso"
+                    android:text="@string/in"
                     android:gravity="center_vertical"
                     android:paddingStart="16dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:paddingEnd="16dp"
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
             </LinearLayout>
 
             <!-- OBJETIVO -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Objetivo Personal"
+                android:text="@string/objlbl"
                 android:textStyle="bold"
-                android:layout_marginBottom="8dp"/>
+                android:layout_marginBottom="8dp"
+                android:fontFamily="@font/montserrat_semibold"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -246,40 +259,48 @@
                     android:id="@+id/btnObjetivoMantener"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="⚖️ Mantener peso"
+                    android:text="@string/obj1"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:gravity="center_vertical"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnObjetivoAumentar"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="💪 Aumentar músculo"
+                    android:text="@string/obj2"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:gravity="center_vertical"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnObjetivoSubir"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="📈 Subir peso"
+                    android:text="@string/obj3"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:gravity="center_vertical"
                     android:layout_marginBottom="8dp"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
 
                 <TextView
                     android:id="@+id/btnObjetivoBajar"
                     android:layout_width="match_parent"
                     android:layout_height="48dp"
-                    android:text="📉 Bajar peso"
+                    android:text="@string/obj4"
                     android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
                     android:gravity="center_vertical"
-                    android:background="@drawable/bg_profile_chip"/>
+                    android:background="@drawable/bg_profile_chip"
+                    android:fontFamily="@font/montserrat_regular"/>
             </LinearLayout>
 
             <!-- BOTÓN -->
@@ -287,12 +308,14 @@
                 android:id="@+id/btnGuardarPerfil"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:text="Guardar y continuar"
+                android:text="@string/btnDI"
                 android:textAllCaps="false"
                 android:textSize="17sp"
                 app:cornerRadius="20dp"
                 app:elevation="6dp"
-                app:backgroundTint="@color/success_green"/>
+                app:backgroundTint="@color/success_green"
+                android:textColor="@color/black"
+                android:fontFamily="@font/montserrat_bold"/>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

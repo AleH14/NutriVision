@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F4F6F9">
+    android:background="@color/screen_background">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="0dp"
@@ -41,7 +41,8 @@
                     android:src="@drawable/logo"
                     android:scaleType="centerInside"
                     android:adjustViewBounds="true"
-                    android:alpha="0.95"/>
+                    android:alpha="0.95"
+                    android:contentDescription="logo_imagen"/>
 
                 <ImageView
                     android:id="@+id/ivLogoLetra"
@@ -50,7 +51,8 @@
                     android:src="@drawable/logo_letra"
                     android:scaleType="centerInside"
                     android:adjustViewBounds="true"
-                    android:layout_marginStart="-25dp"/>
+                    android:layout_marginStart="-25dp"
+                    android:contentDescription="logo_letra"/>
             </LinearLayout>
 
             <!-- TITULO -->
@@ -59,7 +61,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:text="¡Bienvenido de vuelta!"
-                android:textColor="#111827"
+                android:textColor="@color/black"
                 android:textSize="24sp"
                 android:fontFamily="@font/montserrat_bold"/>
 
@@ -67,7 +69,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Inicia sesión para continuar"
-                android:textColor="#6B7280"
+                android:textColor="@color/black"
                 android:textSize="14sp"
                 android:layout_marginTop="6dp"
                 android:layout_marginBottom="24dp"
@@ -86,8 +88,8 @@
                 app:boxCornerRadiusTopEnd="16dp"
                 app:boxCornerRadiusBottomStart="16dp"
                 app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="#D1D5DB"
-                app:hintTextColor="#9CA3AF"
+                app:boxStrokeColor="@color/gray"
+                app:hintTextColor="@color/black"
                 app:errorEnabled="true">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -96,7 +98,7 @@
                     android:layout_height="wrap_content"
                     android:hint="Correo electrónico"
                     android:inputType="textEmailAddress"
-                    android:textColor="#111827"
+                    android:textColor="@color/black"
                     android:fontFamily="@font/montserrat_regular"/>
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -114,8 +116,8 @@
                 app:boxCornerRadiusTopEnd="16dp"
                 app:boxCornerRadiusBottomStart="16dp"
                 app:boxCornerRadiusBottomEnd="16dp"
-                app:boxStrokeColor="#D1D5DB"
-                app:hintTextColor="#9CA3AF"
+                app:boxStrokeColor="@color/gray"
+                app:hintTextColor="@color/black"
                 app:errorEnabled="true">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -124,7 +126,7 @@
                     android:layout_height="wrap_content"
                     android:hint="Contraseña"
                     android:inputType="textPassword"
-                    android:textColor="#111827"
+                    android:textColor="@color/black"
                     android:fontFamily="@font/montserrat_regular"/>
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -150,7 +152,7 @@
                 android:text="Iniciar Sesión"
                 android:textAllCaps="false"
                 android:textSize="17sp"
-                android:textColor="#111827"
+                android:textColor="@color/black"
                 android:fontFamily="@font/montserrat_bold"
                 app:cornerRadius="20dp"
                 app:elevation="6dp"
@@ -170,14 +172,14 @@
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="#D1D5DB"
+                    android:background="@color/gray"
                     android:alpha="0.4"/>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="  O  "
-                    android:textColor="#9CA3AF"
+                    android:textColor="@color/gray"
                     android:textSize="14sp"
                     android:fontFamily="@font/montserrat_regular"/>
 
@@ -185,7 +187,7 @@
                     android:layout_width="0dp"
                     android:layout_height="1dp"
                     android:layout_weight="1"
-                    android:background="#D1D5DB"
+                    android:background="@color/gray"
                     android:alpha="0.4"/>
             </LinearLayout>
 
@@ -199,7 +201,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="¿No tienes cuenta? "
-                    android:textColor="#6B7280"
+                    android:textColor="@color/gris_claro"
                     android:textSize="14sp"
                     android:fontFamily="@font/montserrat_regular"/>
 

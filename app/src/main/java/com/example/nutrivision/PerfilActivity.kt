@@ -246,11 +246,16 @@ class PerfilActivity : AppCompatActivity() {
         editText.isFocusableInTouchMode = true
 
         val borderDrawable = android.graphics.drawable.GradientDrawable().apply {
-            setColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            setColor(ContextCompat.getColor(this@PerfilActivity, R.color.card_background))
             setStroke(dpToPx(1), ContextCompat.getColor(this@PerfilActivity, R.color.gris_claro))
             cornerRadius = dpToPx(8).toFloat()
         }
+
         editText.background = borderDrawable
+
+        editText.setTextColor(ContextCompat.getColor(this, R.color.black))
+        editText.setHintTextColor(ContextCompat.getColor(this, R.color.gray))
+
         editText.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8))
     }
 

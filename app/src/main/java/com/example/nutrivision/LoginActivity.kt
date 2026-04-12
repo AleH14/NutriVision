@@ -72,6 +72,9 @@ class LoginActivity : AppCompatActivity() {
         if (password.isEmpty()) {
             lblPassword.error = "La contraseña es requerida"
             isValid = false
+        } else if (password.length < 6) {
+            lblPassword.error = "La contraseña debe tener al menos 6 caracteres"
+            isValid = false
         } else {
             lblPassword.error = null
         }
