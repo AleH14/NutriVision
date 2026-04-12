@@ -60,7 +60,7 @@ class DatosInicialesActivity : AppCompatActivity() {
 
         btnGeneroMasculino = findViewById(R.id.btnGeneroMasculino)
         btnGeneroFemenino = findViewById(R.id.btnGeneroFemenino)
-        btnActividadSedentario = findViewById(R.id. btnActividadSedentario)
+        btnActividadSedentario = findViewById(R.id.btnActividadSedentario)
         btnActividadLigero = findViewById(R.id.btnActividadLigero)
         btnActividadModerado = findViewById(R.id.btnActividadModerado)
         btnActividadIntenso = findViewById(R.id.btnActividadIntenso)
