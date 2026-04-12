@@ -34,9 +34,6 @@
             android:name=".RegistroActivity"
             android:exported="false" />
         <activity
-            android:name=".DatosInicialesActivity"
-            android:exported="false" />
-        <activity
             android:name=".AnalisisActivity"
             android:exported="false" />
         <activity
