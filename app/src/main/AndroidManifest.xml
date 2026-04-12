@@ -18,6 +18,22 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NutriVision">
         <activity
+            android:name=".DatosInicialesActivity"
+            android:exported="false" />
+        <!-- LoginActivity como pantalla principal -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".RegistroActivity"
+            android:exported="false" />
+        <activity
             android:name=".AnalisisActivity"
             android:exported="false" />
         <activity
@@ -31,13 +47,7 @@
             android:exported="false" />
         <activity
             android:name=".InicioActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:exported="false" />
         <activity android:name=".CamaraActivity" />
     </application>
 

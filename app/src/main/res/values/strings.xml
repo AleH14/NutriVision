@@ -1,3 +1,28 @@
 <resources>
     <string name="app_name">NutriVision</string>
+
+    <!-- datos iniciales view -->
+    <string name="Icono_perfil">Icono perfil</string>
+    <string name="completa">Completa tu perfil</string>
+    <string name="cuenta">Cuéntanos sobre ti para personalizar tu experiencia</string>
+    <string name="edad">Edad (años)</string>
+    <string name="altura">Altura (cm)</string>
+    <string name="peso">Peso actual (lb)</string>
+    <string name="generolbl">Género</string>
+    <string name="Masculino">Masculino</string>
+    <string name="Femenino">Femenino</string>
+    <string name="n1">Nivel de Actividad Física</string>
+    <string name="se">Sedentario</string>
+    <string name="li">Ligero</string>
+    <string name="mo">Moderado</string>
+    <string name="in">Intenso</string>
+    <string name="objlbl">Objetivo Personal</string>
+    <string name="obj1">Mantener peso</string>
+    <string name="obj2">Aumentar músculo</string>
+    <string name="obj3">Subir peso</string>
+    <string name="obj4">Bajar peso</string>
+    <string name="btnDI">Guardar y continuar</string>
+
+
+
 </resources>
