@@ -58,4 +58,11 @@ class NutriRepository(private val apiService: ApiService) {
         )
         return apiService.saveAnalysis("Bearer $token", request)
     }
+
+    suspend fun getAnalysesByDate(
+        token: String,
+        date: String? = null
+    ): Response<AnalysesResponse> {
+        return apiService.getAnalysesByDate("Bearer $token", date)
+    }
 }

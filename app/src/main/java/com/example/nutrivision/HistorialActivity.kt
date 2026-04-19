@@ -5,14 +5,20 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.example.nutrivision.data.network.RetrofitClient
+import com.example.nutrivision.data.repository.NutriRepository
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -49,16 +55,23 @@ class HistorialActivity : AppCompatActivity() {
     private lateinit var selectedDate: Calendar
 
     private val mealsByDate = mutableMapOf<String, List<MealEntry>>()
+    private lateinit var repository: NutriRepository
+    private val TAG = "HistorialActivity"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_historial)
+
+        repository = NutriRepository(RetrofitClient.instance)
 
         initCalendars()
         bindViews()
         setupNavigation()
         setupActions()
         renderScreen()
+        
+        // Cargar automáticamente análisis de HOY
+        cargarAnalisisDelDia(selectedDate)
     }
 
     private fun initCalendars() {
@@ -368,6 +381,79 @@ class HistorialActivity : AppCompatActivity() {
             set(Calendar.DAY_OF_MONTH, 1)
         }
         renderScreen()
+        cargarAnalisisDelDia(date)
+    }
+
+    private fun cargarAnalisisDelDia(date: Calendar) {
+        val token = TokenManager.getToken(this)
+        if (token == null) {
+            Log.e(TAG, "Token no encontrado")
+            return
+        }
+        
+        val dateStr = dateKeyFormat.format(date.time)
+        Log.d(TAG, "Cargando análisis para: $dateStr")
+        
+        lifecycleScope.launch {
+            try {
+                val response = repository.getAnalysesByDate(token, dateStr)
+                
+                if (response.isSuccessful && response.body() != null) {
+                    val analysesResponse = response.body()!!
+                    Log.d(TAG, "Análisis encontrados: ${analysesResponse.count}")
+                    
+                    // Convertir AnalysisItem a MealEntry
+                    val meals = analysesResponse.data.map { analysis ->
+                        val mealType = analysis.rawModelResponse?.mealType ?: "Merienda"
+                        val dishNames = analysis.foodsDetected.joinToString(", ") { it.name }
+                        
+                        // Convertir hora de UTC a zona horaria local
+                        val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+                        utcFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
+                        val parsedDate = utcFormat.parse(analysis.createdAt) ?: Calendar.getInstance().time
+                        
+                        // Formatear en zona horaria local
+                        val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                        localFormat.timeZone = java.util.TimeZone.getDefault()
+                        val time = localFormat.format(parsedDate)
+                        
+                        Log.d(TAG, "Hora UTC: ${analysis.createdAt} -> Hora Local: $time")
+                        
+                        MealEntry(
+                            section = capitalizeMealType(mealType),
+                            title = dishNames,
+                            time = time,
+                            calories = "${analysis.nutrition.calories.toInt()} kcal"
+                        )
+                    }
+                    
+                    mealsByDate[dateStr] = meals
+                    Log.d(TAG, "Comidas cargadas para $dateStr: ${meals.size}")
+                    
+                    // Actualizar vista
+                    renderMealsForSelectedDate()
+                    renderCalendar()
+                } else {
+                    Log.w(TAG, "Respuesta no exitosa: ${response.code()}")
+                    mealsByDate[dateStr] = emptyList()
+                    renderMealsForSelectedDate()
+                }
+            } catch (error: Exception) {
+                Log.e(TAG, "Error al cargar análisis", error)
+                error.printStackTrace()
+                Toast.makeText(this@HistorialActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun capitalizeMealType(type: String): String {
+        return when (type.lowercase()) {
+            "desayuno" -> "Desayuno"
+            "almuerzo" -> "Almuerzo"
+            "cena" -> "Cena"
+            "merienda" -> "Merienda"
+            else -> type.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
     }
 
     private fun showMonthPicker() {

@@ -84,4 +84,33 @@ data class SaveAnalysisResponse(
     val analysisId: String
 )
 
+data class AnalysesResponse(
+    @SerializedName("count")
+    val count: Int,
+    @SerializedName("data")
+    val data: List<AnalysisItem>
+)
+
+data class AnalysisItem(
+    @SerializedName("_id")
+    val id: String,
+    @SerializedName("imageName")
+    val imageName: String,
+    @SerializedName("foodsDetected")
+    val foodsDetected: List<Dish>,
+    @SerializedName("nutrition")
+    val nutrition: Nutrition,
+    @SerializedName("rawModelResponse")
+    val rawModelResponse: RawModelResponse? = null,
+    @SerializedName("createdAt")
+    val createdAt: String
+)
+
+data class RawModelResponse(
+    @SerializedName("plateAnalysis")
+    val plateAnalysis: String? = null,
+    @SerializedName("mealType")
+    val mealType: String? = null
+)
+
 

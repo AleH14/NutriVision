@@ -383,4 +383,43 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
   }
 });
 
+// GET /api/users/analyses - Obtener análisis del usuario (con filtro opcional por fecha)
+router.get("/analyses", verifyToken, async (req, res, next) => {
+  try {
+    console.log("=== GET ANALYSES ===");
+    console.log("UserId:", req.userId);
+    
+    const { date } = req.query; // Formato: yyyy-MM-dd
+    
+    const Analysis = require("../models/analysis.model");
+    let query = { userId: req.userId };
+    
+    if (date) {
+      // Filtrar por fecha específica
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setDate(endDate.getDate() + 1);
+      
+      query.createdAt = {
+        $gte: startDate,
+        $lt: endDate
+      };
+      
+      console.log("Filtrando por fecha:", date);
+    }
+    
+    const analyses = await Analysis.find(query).sort({ createdAt: -1 });
+    
+    console.log("Análisis encontrados:", analyses.length);
+    
+    res.json({
+      count: analyses.length,
+      data: analyses
+    });
+  } catch (error) {
+    console.error("Error en GET analyses:", error.message);
+    next(error);
+  }
+});
+
 module.exports = router;

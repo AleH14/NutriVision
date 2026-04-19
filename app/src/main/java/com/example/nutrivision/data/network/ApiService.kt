@@ -52,4 +52,10 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body analysisData: SaveAnalysisRequest
     ): Response<SaveAnalysisResponse>
+
+    @GET("api/users/analyses")
+    suspend fun getAnalysesByDate(
+        @Header("Authorization") token: String,
+        @Query("date") date: String? = null
+    ): Response<AnalysesResponse>
 }
