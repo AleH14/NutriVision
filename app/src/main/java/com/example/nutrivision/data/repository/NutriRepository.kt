@@ -28,6 +28,10 @@ class NutriRepository(private val apiService: ApiService) {
         return apiService.calculateDailyGoal("Bearer $token")
     }
 
+    suspend fun analyzeFoodImage(token: String, image: MultipartBody.Part, photoTakenTime: String? = null): Response<FoodAnalysisResponse> {
+        return apiService.analyzeFoodImage("Bearer $token", image, photoTakenTime)
+    }
+
     // Analysis
     suspend fun uploadAnalysisImage(token: String, image: MultipartBody.Part): Response<Analysis> {
         return apiService.uploadAnalysisImage("Bearer $token", image)
@@ -35,5 +39,23 @@ class NutriRepository(private val apiService: ApiService) {
 
     suspend fun getHistory(token: String): Response<List<Analysis>> {
         return apiService.getHistory("Bearer $token")
+    }
+
+    suspend fun saveAnalysis(
+        token: String,
+        imageFilename: String,
+        dishes: List<Dish>,
+        nutrition: Nutrition,
+        plateAnalysis: String,
+        mealType: String
+    ): Response<SaveAnalysisResponse> {
+        val request = SaveAnalysisRequest(
+            imageFilename = imageFilename,
+            dishes = dishes,
+            nutrition = nutrition,
+            plateAnalysis = plateAnalysis,
+            mealType = mealType
+        )
+        return apiService.saveAnalysis("Bearer $token", request)
     }
 }

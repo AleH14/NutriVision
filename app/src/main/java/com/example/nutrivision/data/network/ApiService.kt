@@ -28,6 +28,14 @@ interface ApiService {
         @Header("Authorization") token: String
     ): Response<CalorieGoalResponse>
 
+    @Multipart
+    @POST("api/users/analyze-food-image")
+    suspend fun analyzeFoodImage(
+        @Header("Authorization") token: String,
+        @Part image: MultipartBody.Part,
+        @Part("photoTakenTime") photoTakenTime: String? = null
+    ): Response<FoodAnalysisResponse>
+
     // Analysis
     @Multipart
     @POST("api/analysis/upload")
@@ -38,4 +46,10 @@ interface ApiService {
 
     @GET("api/analysis/history")
     suspend fun getHistory(@Header("Authorization") token: String): Response<List<Analysis>>
+
+    @POST("api/users/save-analysis")
+    suspend fun saveAnalysis(
+        @Header("Authorization") token: String,
+        @Body analysisData: SaveAnalysisRequest
+    ): Response<SaveAnalysisResponse>
 }

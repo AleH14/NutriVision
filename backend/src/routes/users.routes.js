@@ -1,11 +1,41 @@
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 const User = require("../models/user.model");
 const env = require("../config/env");
 const { calculateDailyCalorieGoal } = require("../services/openai.service");
 
 const router = express.Router();
+
+// Configurar multer para imágenes
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    console.log("Multer fileFilter - archivo:", file.originalname, "mime:", file.mimetype);
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos de imagen'));
+    }
+  }
+});
+
+// Middleware para manejar errores de multer
+const handleMulterError = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    console.error("MulterError:", err.message);
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: "Archivo muy grande (máximo 5MB)" });
+    }
+    return res.status(400).json({ message: "Error al procesar archivo: " + err.message });
+  } else if (err) {
+    console.error("Multer error:", err.message);
+    return res.status(400).json({ message: err.message });
+  }
+  next();
+};
 
 // Middleware para verificar token JWT
 const verifyToken = (req, res, next) => {
@@ -215,6 +245,140 @@ router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
       rationale: result.rationale,
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/users/analyze-food-image - Analizar imagen de comida
+router.post("/analyze-food-image", upload.single('image'), handleMulterError, verifyToken, async (req, res, next) => {
+  try {
+    console.log("=== ANALYZE FOOD IMAGE ===");
+    console.log("Archivo recibido:", req.file ? { name: req.file.originalname, size: req.file.size, mime: req.file.mimetype } : "NO RECIBIDO");
+    console.log("UserId:", req.userId);
+    console.log("Token verificado:", req.userId ? "✓" : "✗");
+
+    if (!req.file) {
+      console.error("Error: Imagen requerida");
+      return res.status(400).json({ message: "Imagen requerida", error: "No se recibió archivo" });
+    }
+
+    const user = await User.findById(req.userId);
+    if (!user) {
+      console.error("Error: Usuario no encontrado");
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    console.log("Usuario encontrado:", user.fullName);
+
+    const { analyzeFoodImageBuffer } = require("../services/openai.service");
+    const photoTakenTime = req.body.photoTakenTime || new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    
+    const userProfile = {
+      age: user.age,
+      heightCm: user.heightCm,
+      currentWeightLb: user.currentWeightLb,
+      gender: user.gender,
+      physicalActivity: user.physicalActivity,
+      personalGoal: user.personalGoal,
+    };
+
+    console.log("Enviando a OpenAI...");
+    const analysisResult = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
+      photoTakenTime,
+      userProfile,
+    });
+
+    console.log("Análisis completado:", analysisResult.parsed);
+
+    res.json({
+      message: "Análisis de comida completado",
+      imageData: {
+        filename: req.file.originalname,
+        size: req.file.size,
+      },
+      analysis: analysisResult.parsed,
+    });
+  } catch (error) {
+    console.error("Error en analyze-food-image:", error.message);
+    console.error("Stack:", error.stack);
+    next(error);
+  }
+});
+
+// POST /api/users/save-analysis - Guardar análisis completado
+router.post("/save-analysis", verifyToken, async (req, res, next) => {
+  try {
+    console.log("=== SAVE ANALYSIS ===");
+    console.log("UserId:", req.userId);
+    
+    const { imageFilename, dishes, nutrition, plateAnalysis, mealType } = req.body;
+    
+    if (!imageFilename || !dishes || !nutrition) {
+      return res.status(400).json({ message: "Datos incompletos para guardar análisis" });
+    }
+
+    // Obtener usuario para actualizar su resumen nutricional
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
+
+    // Crear documento de análisis
+    const Analysis = require("../models/analysis.model");
+    const newAnalysis = new Analysis({
+      userId: req.userId,
+      imageName: imageFilename,
+      foodsDetected: dishes.map(d => ({
+        name: d.name,
+        estimatedPortion: d.estimatedPortion
+      })),
+      nutrition: {
+        calories: nutrition.calories,
+        proteinGrams: nutrition.proteinGrams,
+        carbsGrams: nutrition.carbsGrams,
+        fatGrams: nutrition.fatGrams
+      },
+      rawModelResponse: {
+        plateAnalysis,
+        mealType,
+        dishes
+      }
+    });
+
+    const savedAnalysis = await newAnalysis.save();
+    console.log("Análisis guardado:", savedAnalysis._id);
+
+    // Actualizar resumen nutricional del usuario
+    const hoy = new Date().toISOString().slice(0, 10);
+    const resumenHoy = user.todayNutritionSummary;
+    
+    // Si el resumen es de un día anterior, reiniciar
+    if (resumenHoy.date !== hoy) {
+      console.log("Reiniciando resumen (fecha antigua):", resumenHoy.date, "->", hoy);
+      user.todayNutritionSummary = {
+        date: hoy,
+        proteinGramsConsumed: 0,
+        carbsGramsConsumed: 0,
+        fatGramsConsumed: 0
+      };
+    }
+
+    // Agregar los valores nutricionales del análisis
+    user.todayNutritionSummary.proteinGramsConsumed += nutrition.proteinGrams;
+    user.todayNutritionSummary.carbsGramsConsumed += nutrition.carbsGrams;
+    user.todayNutritionSummary.fatGramsConsumed += nutrition.fatGrams;
+
+    console.log("Resumen actualizado:", user.todayNutritionSummary);
+
+    await user.save();
+
+    res.json({
+      message: "Análisis guardado exitosamente",
+      analysisId: savedAnalysis._id,
+      updatedSummary: user.todayNutritionSummary
+    });
+  } catch (error) {
+    console.error("Error en save-analysis:", error.message);
     next(error);
   }
 });

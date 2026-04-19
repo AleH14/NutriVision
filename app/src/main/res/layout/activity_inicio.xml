@@ -47,7 +47,7 @@
                 app:layout_constraintTop_toTopOf="parent" />
 
             <TextView
-                android:id="@+id/textView"
+                android:id="@+id/tvSaludo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="104dp"
@@ -85,7 +85,7 @@
 
                     <!-- Título -->
                     <TextView
-                        android:id="@+id/tv_meta_diaria"
+                        android:id="@+id/tvMetaDiaria"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Meta Diaria"
@@ -104,7 +104,7 @@
                             android:id="@+id/tv_calorias_consumidas"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1,850 /"
+                            android:text="0 /"
                             android:textSize="22sp"
                             android:textStyle="bold"
                             android:textColor="@color/black"
@@ -118,7 +118,7 @@
                             android:id="@+id/tv_calorias_meta"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text=" 2,500 kcal"
+                            android:text=" 0 kcal"
                             android:textSize="15sp"
                             android:textColor="@color/gris_claro"
                             android:fontFamily="@font/montserrat"
@@ -133,7 +133,7 @@
                             android:id="@+id/tv_porcentaje"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="74%"
+                            android:text="0%"
                             android:textStyle="bold"
                             android:textSize="16sp"
                             android:textColor="#F86E00"
@@ -149,7 +149,7 @@
                         style="@android:style/Widget.ProgressBar.Horizontal"
                         android:layout_width="match_parent"
                         android:layout_height="16dp"
-                        android:progress="74"
+                        android:progress="0"
                         android:max="100"
                         android:progressDrawable="@drawable/progress_orange"
                         android:layout_marginTop="8dp"
@@ -180,7 +180,7 @@
                             android:id="@+id/tv_restante"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Te quedan 650 kcal para completar el día"
+                            android:text="Cargando..."
                             android:textSize="14sp"
                             android:textColor="@color/gris_claro"
                             android:fontFamily="@font/montserrat"
@@ -296,6 +296,7 @@
 
 
                 <TextView
+                    android:id="@+id/tvCaloriasHoy"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Resumen nutricional de Hoy"
@@ -323,6 +324,7 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvProteinasHoy"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/montserrat"
@@ -333,11 +335,12 @@
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_proteinas"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
                     android:max="120"
-                    android:progress="85"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_yellow"/>
 
@@ -360,6 +363,7 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvCarbsHoy"
                         android:fontFamily="@font/montserrat"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -370,11 +374,12 @@
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_carbos"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
                     android:max="120"
-                    android:progress="85"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_cyan"/>
 
@@ -397,6 +402,7 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvGrasasHoy"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/montserrat"
@@ -407,11 +413,12 @@
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_grasas"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
                     android:max="120"
-                    android:progress="85"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_purple"/>
             </LinearLayout>

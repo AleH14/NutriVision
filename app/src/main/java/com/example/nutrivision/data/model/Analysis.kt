@@ -27,3 +27,61 @@ data class Nutrition(
     val sugarGrams: Double? = null,
     val sodiumMg: Double? = null
 )
+
+// Modelo para la respuesta del análisis de OpenAI
+data class FoodAnalysisResponse(
+    @SerializedName("message")
+    val message: String,
+    @SerializedName("imageData")
+    val imageData: ImageData,
+    @SerializedName("analysis")
+    val analysis: FoodAnalysis
+)
+
+data class ImageData(
+    @SerializedName("filename")
+    val filename: String,
+    @SerializedName("size")
+    val size: Int
+)
+
+data class FoodAnalysis(
+    @SerializedName("dishes")
+    val dishes: List<Dish>,
+    @SerializedName("plateAnalysis")
+    val plateAnalysis: String,
+    @SerializedName("nutrition")
+    val nutrition: Nutrition,
+    @SerializedName("mealType")
+    val mealType: String
+)
+
+data class Dish(
+    @SerializedName("name")
+    val name: String,
+    @SerializedName("estimatedPortion")
+    val estimatedPortion: String
+)
+
+// Modelos para guardar análisis
+data class SaveAnalysisRequest(
+    @SerializedName("imageFilename")
+    val imageFilename: String,
+    @SerializedName("dishes")
+    val dishes: List<Dish>,
+    @SerializedName("nutrition")
+    val nutrition: Nutrition,
+    @SerializedName("plateAnalysis")
+    val plateAnalysis: String,
+    @SerializedName("mealType")
+    val mealType: String
+)
+
+data class SaveAnalysisResponse(
+    @SerializedName("message")
+    val message: String,
+    @SerializedName("analysisId")
+    val analysisId: String
+)
+
+
