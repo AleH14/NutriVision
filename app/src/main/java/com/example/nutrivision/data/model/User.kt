@@ -22,14 +22,3 @@ data class NutritionSummary(
     val carbsGramsConsumed: Double,
     val fatGramsConsumed: Double
 )
-
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
-
-data class AuthResponse(
-    val message: String,
-    val token: String? = null,
-    val user: User? = null
-)

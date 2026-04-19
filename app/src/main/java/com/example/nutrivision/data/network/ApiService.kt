@@ -12,10 +12,21 @@ interface ApiService {
     suspend fun login(@Body request: LoginRequest): Response<AuthResponse>
 
     @POST("api/users/register")
-    suspend fun register(@Body user: User): Response<AuthResponse>
+    suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @GET("api/users/profile")
     suspend fun getProfile(@Header("Authorization") token: String): Response<User>
+
+    @PUT("api/users/profile")
+    suspend fun updateProfile(
+        @Header("Authorization") token: String,
+        @Body request: UpdateUserRequest
+    ): Response<User>
+
+    @POST("api/users/calculate-daily-goal")
+    suspend fun calculateDailyGoal(
+        @Header("Authorization") token: String
+    ): Response<CalorieGoalResponse>
 
     // Analysis
     @Multipart

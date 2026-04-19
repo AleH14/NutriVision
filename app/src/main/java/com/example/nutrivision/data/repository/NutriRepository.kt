@@ -12,12 +12,20 @@ class NutriRepository(private val apiService: ApiService) {
         return apiService.login(request)
     }
 
-    suspend fun register(user: User): Response<AuthResponse> {
-        return apiService.register(user)
+    suspend fun register(request: RegisterRequest): Response<AuthResponse> {
+        return apiService.register(request)
     }
 
     suspend fun getProfile(token: String): Response<User> {
         return apiService.getProfile("Bearer $token")
+    }
+
+    suspend fun updateProfile(token: String, request: UpdateUserRequest): Response<User> {
+        return apiService.updateProfile("Bearer $token", request)
+    }
+
+    suspend fun calculateDailyGoal(token: String): Response<CalorieGoalResponse> {
+        return apiService.calculateDailyGoal("Bearer $token")
     }
 
     // Analysis

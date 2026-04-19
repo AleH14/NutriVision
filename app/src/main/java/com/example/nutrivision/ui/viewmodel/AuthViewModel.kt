@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nutrivision.data.model.AuthResponse
 import com.example.nutrivision.data.model.LoginRequest
-import com.example.nutrivision.data.model.User
+import com.example.nutrivision.data.model.RegisterRequest
 import com.example.nutrivision.data.repository.NutriRepository
 import kotlinx.coroutines.launch
 
@@ -18,11 +18,11 @@ class AuthViewModel(private val repository: NutriRepository) : ViewModel() {
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> = _isLoading
 
-    fun login(email: String, password: String) {
+    fun login(request: LoginRequest) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = repository.login(LoginRequest(email, password))
+                val response = repository.login(request)
                 if (response.isSuccessful && response.body() != null) {
                     _authResult.value = Result.success(response.body()!!)
                 } else {
@@ -36,15 +36,21 @@ class AuthViewModel(private val repository: NutriRepository) : ViewModel() {
         }
     }
 
-    fun register(user: User) {
+    fun login(email: String, password: String) {
+        login(LoginRequest(email, password))
+    }
+
+    fun register(request: RegisterRequest) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = repository.register(user)
+                val response = repository.register(request)
                 if (response.isSuccessful && response.body() != null) {
                     _authResult.value = Result.success(response.body()!!)
                 } else {
-                    _authResult.value = Result.failure(Exception("Error en registro: ${response.code()}"))
+                    // Intentamos obtener el mensaje de error del cuerpo si existe
+                    val errorMsg = response.errorBody()?.string() ?: "Error en registro: ${response.code()}"
+                    _authResult.value = Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
                 _authResult.value = Result.failure(e)
