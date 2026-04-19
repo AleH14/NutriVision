@@ -18,7 +18,7 @@
    - 🔄 Flujos de datos
 
 ### 4. **Quiero documentación técnica completa**
-   - 📄 Documento: [TEST_README.md](./TEST_README.md)
+   - 📄 Documento: [README.md](./README.md)
    - 📋 Todos los parámetros
    - 🔧 Solución de problemas
 
@@ -42,7 +42,7 @@
 
 | Documento | Contenido |
 |-----------|----------|
-| [TEST_README.md](./TEST_README.md) | Guía completa de todos los tests |
+| [README.md](./README.md) | Guía completa de todos los tests |
 | [ENDPOINTS_COMPARATIVA.md](./ENDPOINTS_COMPARATIVA.md) | Análisis de endpoints sin/con usuario |
 
 ### 💻 Código
@@ -133,7 +133,7 @@ npm run test:image -- ./comida.jpg <USER_ID>
 
 ### ❌ "Error: Cannot find module"
 **Respuesta:** Ejecuta `npm run dev` en otra terminal  
-📄 Ver: [TEST_README.md - Problemas](./TEST_README.md#solución-de-problemas)
+📄 Ver: [README.md](./README.md)
 
 ### ❌ "El archivo no existe"
 **Respuesta:** Usa ruta correcta a la imagen  
@@ -141,7 +141,7 @@ npm run test:image -- ./comida.jpg <USER_ID>
 
 ### ❌ "OpenAI no devolvió JSON válido"
 **Respuesta:** Verifica OPENAI_API_KEY en .env  
-📄 Ver: [TEST_README.md - Problemas](./TEST_README.md#solución-de-problemas)
+📄 Ver: [README.md](./README.md)
 
 ### ✅ "¿Cómo integro en mi código?"
 **Respuesta:** Mira [ejemplos.js](./ejemplos.js)  
@@ -210,7 +210,6 @@ backend/
 ├── 📘 INDICES.md ..................... (este archivo)
 ├── 📘 QUICK_START.md ................. Guía de 3 pasos
 ├── 📘 DEMO.md ........................ Ejemplos visuales
-├── 📘 TEST_README.md ................. Documentación completa
 ├── 📘 ENDPOINTS_COMPARATIVA.md ....... Análisis endpoints
 │
 ├── 🐍 test-quick.js .................. Test sin usuario ⚡
@@ -229,7 +228,7 @@ backend/
 │
 ├── package.json ...................... Scripts npm
 ├── .env ............................... Variables de entorno
-└── README.md .......................... (si existe)
+└── README.md .......................... Documentación completa
 ```
 
 ---
@@ -240,7 +239,7 @@ backend/
 |-------|-----------|
 | Empezar ya | [QUICK_START.md](./QUICK_START.md) |
 | Ver ejemplos | [DEMO.md](./DEMO.md) |
-| Leer todo | [TEST_README.md](./TEST_README.md) |
+| Leer todo | [README.md](./README.md) |
 | Comparar | [ENDPOINTS_COMPARATIVA.md](./ENDPOINTS_COMPARATIVA.md) |
 | Código | [ejemplos.js](./ejemplos.js) |
 

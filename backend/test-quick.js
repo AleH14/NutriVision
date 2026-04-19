@@ -161,7 +161,7 @@ function createFormData(boundary, imageBuffer, photoTakenTime) {
   parts.push(
     `Content-Disposition: form-data; name="image"; filename="test-food-${Date.now()}.jpg"`
   );
-  parts.push(`Content-Type: ${getMimeType("temp.jpg")}`);
+  parts.push(`Content-Type: ${getMimeType(imagePath)}`);
   parts.push("");
 
   const headersEnd = parts.join("\r\n") + "\r\n";
