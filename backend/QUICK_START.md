@@ -131,7 +131,7 @@ npm run test:image -- ./tu-imagen.jpg <USER_ID>
 
 2. **Leer documentación completa:**
    ```bash
-   cat TEST_README.md
+   cat README.md
    ```
 
 3. **Integrar en tu código:**
