@@ -2,10 +2,12 @@
  * Script para validar la configuración del backend antes de correr tests
  * 
  * Verifica:
- * - Que el servidor está corriendo
- * - Que MongoDB está conectado
- * - Que OpenAI API está configurada
- * - Que hay al menos un usuario de prueba
+ * - Que el servidor está corriendo y responde en /health
+ * - Que la configuración requerida por el backend está presente
+ * 
+ * Nota:
+ * Este script no valida directamente la conexión a MongoDB, la conectividad
+ * con OpenAI ni la existencia de usuarios de prueba.
  * 
  * Uso:
  *   node validate-setup.js
