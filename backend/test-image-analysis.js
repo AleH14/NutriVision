@@ -16,7 +16,6 @@
 const fs = require("fs");
 const path = require("path");
 const http = require("http");
-const querystring = require("querystring");
 
 // Obtener argumentos de línea de comandos
 const args = process.argv.slice(2);
