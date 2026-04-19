@@ -1,0 +1,35 @@
+package com.example.nutrivision.data.model
+
+import com.google.gson.annotations.SerializedName
+
+data class User(
+    @SerializedName("_id") val id: String? = null,
+    val fullName: String,
+    val email: String,
+    val age: Int,
+    val heightCm: Int,
+    val currentWeightLb: Int,
+    val gender: String,
+    val physicalActivity: String,
+    val personalGoal: String,
+    val dailyCalorieGoalKcal: Double,
+    val todayNutritionSummary: NutritionSummary? = null
+)
+
+data class NutritionSummary(
+    val date: String,
+    val proteinGramsConsumed: Double,
+    val carbsGramsConsumed: Double,
+    val fatGramsConsumed: Double
+)
+
+data class LoginRequest(
+    val email: String,
+    val password: String
+)
+
+data class AuthResponse(
+    val message: String,
+    val token: String? = null,
+    val user: User? = null
+)
