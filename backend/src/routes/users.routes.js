@@ -227,13 +227,34 @@ router.post("/analyze-food-image", upload.single('image'), handleMulterError, ve
 // POST /api/users/save-analysis
 router.post("/save-analysis", verifyToken, async (req, res, next) => {
   try {
-    const { nutrition } = req.body;
-    const user = await User.findById(req.userId);
-    const hoy = new Date().toISOString().slice(0, 10);
+    const { imageFilename, dishes, nutrition, plateAnalysis, mealType, createdAt, date } = req.body;
+    const userId = req.userId;
+
+    const Analysis = require("../models/analysis.model");
+
+    // Guardar el análisis con la fecha LOCAL proporcionada
+    const analysis = new Analysis({
+      userId,
+      imageName: imageFilename,
+      foodsDetected: dishes,
+      nutrition: nutrition,
+      notes: plateAnalysis,
+      rawModelResponse: { mealType, plateAnalysis },
+      createdAt: createdAt  // Usar la fecha local que envía el cliente
+    });
+
+    await analysis.save();
+
+    // Actualizar resumen diario del usuario usando la fecha LOCAL
+    const hoy = date || new Date().toISOString().slice(0, 10);
+    const user = await User.findById(userId);
 
     if (user.todayNutritionSummary.date !== hoy) {
       user.todayNutritionSummary = {
-        date: hoy, proteinGramsConsumed: 0, carbsGramsConsumed: 0, fatGramsConsumed: 0
+        date: hoy,
+        proteinGramsConsumed: 0,
+        carbsGramsConsumed: 0,
+        fatGramsConsumed: 0
       };
     }
 
@@ -241,11 +262,73 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
     user.todayNutritionSummary.carbsGramsConsumed += nutrition.carbsGrams;
     user.todayNutritionSummary.fatGramsConsumed += nutrition.fatGrams;
 
-    const Analysis = require("../models/analysis.model");
-    await new Analysis({ userId: req.userId, ...req.body }).save();
-
     await user.save();
-    res.json({ message: "Progreso guardado", summary: user.todayNutritionSummary });
+
+    res.json({
+      message: "Progreso guardado",
+      summary: user.todayNutritionSummary,
+      analysisId: analysis._id
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// GET /api/users/analyses - Obtener análisis por fecha
+router.get("/analyses", verifyToken, async (req, res, next) => {
+  try {
+    const { date } = req.query;
+    const userId = req.userId;
+
+    const Analysis = require("../models/analysis.model");
+
+    let query = { userId };
+
+    if (date) {
+      // Crear rango de fechas en UTC para buscar
+      // La fecha que viene del frontend es LOCAL (ej: "2026-04-21")
+      // Necesitamos buscar desde las 00:00:00 UTC hasta las 23:59:59 UTC de ese día
+      // Pero como El Salvador es UTC-6, el rango debe ajustarse
+
+      const localDate = new Date(date);
+
+      // Inicio del día en UTC (00:00:00 UTC)
+      const startDate = new Date(Date.UTC(
+        localDate.getUTCFullYear(),
+        localDate.getUTCMonth(),
+        localDate.getUTCDate(),
+        0, 0, 0, 0
+      ));
+
+      // Fin del día en UTC (23:59:59 UTC)
+      const endDate = new Date(Date.UTC(
+        localDate.getUTCFullYear(),
+        localDate.getUTCMonth(),
+        localDate.getUTCDate(),
+        23, 59, 59, 999
+      ));
+
+      query.createdAt = { $gte: startDate, $lte: endDate };
+
+      console.log(`Buscando análisis para fecha local: ${date}`);
+      console.log(`Rango UTC: ${startDate.toISOString()} - ${endDate.toISOString()}`);
+    }
+
+    const analyses = await Analysis.find(query).sort({ createdAt: -1 });
+
+    const formattedAnalyses = analyses.map(analysis => ({
+      _id: analysis._id,
+      imageName: analysis.imageName,
+      foodsDetected: analysis.foodsDetected,
+      nutrition: analysis.nutrition,
+      rawModelResponse: analysis.rawModelResponse,
+      createdAt: analysis.createdAt
+    }));
+
+    res.json({
+      count: formattedAnalyses.length,
+      data: formattedAnalyses
+    });
   } catch (error) {
     next(error);
   }
