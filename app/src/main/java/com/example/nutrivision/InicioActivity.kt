@@ -64,7 +64,10 @@ class InicioActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume: Recargando datos...")
-        cargarDatosInicio()
+        // Solo recargar si la actividad está activa
+        if (!isFinishing && !isDestroyed) {
+            cargarDatosInicio()
+        }
     }
     
     private fun initViews() {
@@ -103,25 +106,21 @@ class InicioActivity : AppCompatActivity() {
         
         if (token == null) {
             Log.e(TAG, "Token es null, redirigiendo a login")
-            mostrarToastError("Sesión expirada, inicia sesión de nuevo")
             irALogin()
             return
         }
 
         // Mostrar saludo inicial
         tvSaludo?.text = "¡Hola, $nombreUsuario!"
-        Log.d(TAG, "Saludo actualizado")
 
         lifecycleScope.launch {
             try {
-                Log.d(TAG, "Realizando llamada a getProfile...")
                 val response = repository.getProfile(token)
                 
                 Log.d(TAG, "Respuesta recibida: isSuccessful=${response.isSuccessful}, code=${response.code()}")
                 
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
-                    Log.d(TAG, "Usuario obtenido: ${usuario.fullName}")
                     Log.d(TAG, "dailyCalorieGoalKcal: ${usuario.dailyCalorieGoalKcal}")
                     
                     // Metas diarias desde el perfil del usuario (IA o calculadas)
@@ -182,7 +181,6 @@ class InicioActivity : AppCompatActivity() {
                         Log.d(TAG, "  Grasas: ${resumen.fatGramsConsumed.toInt()} / $grasasMax g")
                         
                     } else {
-                        Log.w(TAG, "Resumen es null, mostrando valores en 0")
                         // Si no hay resumen aún, mostrar 0 con metas del usuario
                         tvCaloriasConsumidas?.text = "0 /"
                         tvCaloriasMeta?.text = " $metaCaloriasDiarias kcal"
@@ -206,11 +204,9 @@ class InicioActivity : AppCompatActivity() {
                 } else {
                     val errorMsg = "Error al cargar datos: ${response.code()}"
                     Log.e(TAG, errorMsg)
-                    mostrarToastError(errorMsg)
                 }
             } catch (error: Exception) {
                 Log.e(TAG, "Excepción durante llamada a API", error)
-                mostrarToastError("Error de conexión: ${error.localizedMessage}")
             }
         }
     }
@@ -286,8 +282,5 @@ class InicioActivity : AppCompatActivity() {
         startActivity(intent)
         finishAffinity()
     }
-    
-    private fun mostrarToastError(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
-    }
+
 }

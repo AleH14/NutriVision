@@ -47,14 +47,18 @@ class NutriRepository(private val apiService: ApiService) {
         dishes: List<Dish>,
         nutrition: Nutrition,
         plateAnalysis: String,
-        mealType: String
+        mealType: String,
+        createdAt: String,
+        date: String
     ): Response<SaveAnalysisResponse> {
         val request = SaveAnalysisRequest(
             imageFilename = imageFilename,
             dishes = dishes,
             nutrition = nutrition,
             plateAnalysis = plateAnalysis,
-            mealType = mealType
+            mealType = mealType,
+            createdAt = createdAt,
+            date = date
         )
         return apiService.saveAnalysis("Bearer $token", request)
     }

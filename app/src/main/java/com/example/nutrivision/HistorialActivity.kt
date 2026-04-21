@@ -20,9 +20,7 @@ import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
-import kotlin.math.max
+import java.util.*
 import kotlin.math.min
 
 class HistorialActivity : AppCompatActivity() {
@@ -69,7 +67,7 @@ class HistorialActivity : AppCompatActivity() {
         setupNavigation()
         setupActions()
         renderScreen()
-        
+
         // Cargar automáticamente análisis de HOY
         cargarAnalisisDelDia(selectedDate)
     }
@@ -384,64 +382,124 @@ class HistorialActivity : AppCompatActivity() {
         cargarAnalisisDelDia(date)
     }
 
+    // 🔥 FUNCIÓN CORREGIDA - Manejo de errores mejorado
     private fun cargarAnalisisDelDia(date: Calendar) {
         val token = TokenManager.getToken(this)
         if (token == null) {
             Log.e(TAG, "Token no encontrado")
+            Toast.makeText(this, "Sesión expirada, inicia sesión nuevamente", Toast.LENGTH_SHORT).show()
             return
         }
-        
+
         val dateStr = dateKeyFormat.format(date.time)
-        Log.d(TAG, "Cargando análisis para: $dateStr")
-        
+        Log.d(TAG, "📅 Cargando análisis para fecha: $dateStr")
+
         lifecycleScope.launch {
             try {
                 val response = repository.getAnalysesByDate(token, dateStr)
-                
+
                 if (response.isSuccessful && response.body() != null) {
                     val analysesResponse = response.body()!!
-                    Log.d(TAG, "Análisis encontrados: ${analysesResponse.count}")
-                    
-                    // Convertir AnalysisItem a MealEntry
-                    val meals = analysesResponse.data.map { analysis ->
-                        val mealType = analysis.rawModelResponse?.mealType ?: "Merienda"
-                        val dishNames = analysis.foodsDetected.joinToString(", ") { it.name }
-                        
-                        // Convertir hora de UTC a zona horaria local
-                        val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-                        utcFormat.timeZone = java.util.TimeZone.getTimeZone("UTC")
-                        val parsedDate = utcFormat.parse(analysis.createdAt) ?: Calendar.getInstance().time
-                        
-                        // Formatear en zona horaria local
-                        val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                        localFormat.timeZone = java.util.TimeZone.getDefault()
-                        val time = localFormat.format(parsedDate)
-                        
-                        Log.d(TAG, "Hora UTC: ${analysis.createdAt} -> Hora Local: $time")
-                        
-                        MealEntry(
-                            section = capitalizeMealType(mealType),
-                            title = dishNames,
-                            time = time,
-                            calories = "${analysis.nutrition.calories.toInt()} kcal"
-                        )
+                    Log.d(TAG, "✅ Análisis encontrados: ${analysesResponse.count}")
+
+                    if (analysesResponse.data.isEmpty()) {
+                        Log.d(TAG, "No hay datos para esta fecha")
+                        mealsByDate[dateStr] = emptyList()
+                        renderMealsForSelectedDate()
+                        renderCalendar()
+                        return@launch
                     }
-                    
+
+                    val meals = mutableListOf<MealEntry>()
+
+                    analysesResponse.data.forEach { analysis ->
+                        try {
+                            // Obtener mealType - si es null usar "Comida"
+                            val mealType = analysis.rawModelResponse?.mealType ?: "Comida"
+
+                            // Obtener nombres de platos
+                            val dishNames = if (analysis.foodsDetected.isNotEmpty()) {
+                                analysis.foodsDetected.joinToString(", ") { it.name }
+                            } else {
+                                "Plato no especificado"
+                            }
+
+                            // 🔥 Convertir hora UTC a LOCAL
+                            val time = convertirUTCALocal(analysis.createdAt)
+
+                            Log.d(TAG, "📝 Procesando: $mealType - $dishNames - $time - ${analysis.nutrition.calories} kcal")
+
+                            meals.add(
+                                MealEntry(
+                                    section = capitalizeMealType(mealType),
+                                    title = dishNames,
+                                    time = time,
+                                    calories = "${analysis.nutrition.calories.toInt()} kcal"
+                                )
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error procesando análisis individual", e)
+                        }
+                    }
+
                     mealsByDate[dateStr] = meals
-                    Log.d(TAG, "Comidas cargadas para $dateStr: ${meals.size}")
-                    
+                    Log.d(TAG, "✅ Comidas cargadas para $dateStr: ${meals.size}")
+
                     // Actualizar vista
                     renderMealsForSelectedDate()
                     renderCalendar()
                 } else {
-                    Log.w(TAG, "Respuesta no exitosa: ${response.code()}")
-                    mealsByDate[dateStr] = emptyList()
-                    renderMealsForSelectedDate()
+                    val errorCode = response.code()
+                    Log.w(TAG, "❌ Respuesta no exitosa: $errorCode")
+
+                    if (errorCode == 401) {
+                        Toast.makeText(this@HistorialActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
+                    } else {
+                        mealsByDate[dateStr] = emptyList()
+                        renderMealsForSelectedDate()
+                    }
                 }
             } catch (error: Exception) {
-                Log.e(TAG, "Error al cargar análisis", error)
-                error.printStackTrace()
-                Toast.makeText(this@HistorialActivity, "Error al cargar datos", Toast.LENGTH_SHORT).show()
+                Log.e(TAG, "❌ Error al cargar análisis", error)
+                mealsByDate[dateStr] = emptyList()
+                renderMealsForSelectedDate()
+                Toast.makeText(this@HistorialActivity, "Error de conexión", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    // 🔥 NUEVA FUNCIÓN - Convertir UTC a hora local
+    private fun convertirUTCALocal(utcDateStr: String): String {
+        return try {
+            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+            utcFormat.timeZone = TimeZone.getTimeZone("UTC")
+            val date = utcFormat.parse(utcDateStr)
+
+            if (date != null) {
+                val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                localFormat.timeZone = TimeZone.getDefault()
+                localFormat.format(date)
+            } else {
+                Log.e(TAG, "Fecha parseada es null: $utcDateStr")
+                "Hora no disponible"
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error al convertir fecha UTC: $utcDateStr", e)
+            // Intentar con formato alternativo
+            try {
+                val altFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+                altFormat.timeZone = TimeZone.getTimeZone("UTC")
+                val date = altFormat.parse(utcDateStr)
+                if (date != null) {
+                    val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    localFormat.timeZone = TimeZone.getDefault()
+                    localFormat.format(date)
+                } else {
+                    "Hora no disponible"
+                }
+            } catch (e2: Exception) {
+                Log.e(TAG, "Error también con formato alternativo", e2)
+                "Hora no disponible"
             }
         }
     }
@@ -452,6 +510,7 @@ class HistorialActivity : AppCompatActivity() {
             "almuerzo" -> "Almuerzo"
             "cena" -> "Cena"
             "merienda" -> "Merienda"
+            "comida" -> "Comida"
             else -> type.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
         }
     }
@@ -471,6 +530,7 @@ class HistorialActivity : AppCompatActivity() {
                 }
 
                 renderScreen()
+                cargarAnalisisDelDia(selectedDate) // 🔥 Recargar al cambiar mes
             }
             .show()
     }
@@ -494,6 +554,7 @@ class HistorialActivity : AppCompatActivity() {
                 }
 
                 renderScreen()
+                cargarAnalisisDelDia(selectedDate) // 🔥 Recargar al cambiar año
             }
             .show()
     }

@@ -31,11 +31,13 @@ data class Nutrition(
 // Modelo para la respuesta del análisis de OpenAI
 data class FoodAnalysisResponse(
     @SerializedName("message")
-    val message: String,
+    val message: String? = null,
     @SerializedName("imageData")
-    val imageData: ImageData,
+    val imageData: ImageData? = null,
     @SerializedName("analysis")
-    val analysis: FoodAnalysis
+    val analysis: FoodAnalysis? = null,
+    @SerializedName("isFood")
+    val isFood: Boolean = true
 )
 
 data class ImageData(
@@ -74,7 +76,11 @@ data class SaveAnalysisRequest(
     @SerializedName("plateAnalysis")
     val plateAnalysis: String,
     @SerializedName("mealType")
-    val mealType: String
+    val mealType: String,
+    @SerializedName("createdAt")
+    val createdAt: String,
+    @SerializedName("date")
+    val date: String
 )
 
 data class SaveAnalysisResponse(

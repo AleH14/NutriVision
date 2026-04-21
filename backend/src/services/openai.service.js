@@ -16,8 +16,13 @@ function buildFoodAnalysisPrompt({ photoTakenTime, userProfile }) {
     JSON.stringify(userProfile),
     `Hora en que se tomo la foto (HH:mm): ${photoTakenTime}`,
     "Determina mealType segun la hora y el tipo de plato.",
-    "Responde SOLO JSON valido con esta estructura exacta:",
+    "PRIMERO, determina si la imagen contiene comida real (platos, alimentos, bebidas, ingredientes).",
+    "Si la imagen NO contiene comida (ej: persona, paisaje, documento, objeto, animal, selfie, etc.), responde con:",
+     '{ "isFood": false, "message": "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida." }',
+     "",
+    "Si la imagen SI contiene comida, responde SOLO JSON valido con esta estructura exacta:",
     "{",
+    '  "isFood": true,',
     '  "dishes": [{"name":"string","estimatedPortion":"string"}],',
     '  "plateAnalysis": "string",',
     '  "nutrition": {',
@@ -31,6 +36,7 @@ function buildFoodAnalysisPrompt({ photoTakenTime, userProfile }) {
     "Si no se puede estimar con precision, entrega una mejor aproximacion razonable.",
   ].join("\n");
 }
+
 
 function buildDailyGoalPrompt(userProfile) {
   return [
@@ -147,6 +153,16 @@ async function analyzeFoodImageBuffer(imageBuffer, mimeType, options = {}) {
   const rawText = extractTextResponse(response);
   const parsed = parseJsonResponse(rawText, "OpenAI no devolvio JSON valido para el analisis de comida.");
 
+ // Validar si la imagen no es comida
+  if (parsed.isFood === false) {
+    return {
+      isFood: false,
+      message: parsed.message || "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida.",
+      rawResponse: response
+    };
+  }
+
+  // Si es comida, validar estructura normal
   if (!parsed?.nutrition || !Array.isArray(parsed?.dishes) || !parsed?.mealType) {
     throw new Error("Respuesta de OpenAI sin estructura nutrimental esperada.");
   }
