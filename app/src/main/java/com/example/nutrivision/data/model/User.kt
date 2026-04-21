@@ -13,6 +13,9 @@ data class User(
     val physicalActivity: String,
     val personalGoal: String,
     val dailyCalorieGoalKcal: Double,
+    val dailyProteinGoalGrams: Int = 150,
+    val dailyCarbsGoalGrams: Int = 200,
+    val dailyFatGoalGrams: Int = 80,
     val todayNutritionSummary: NutritionSummary? = null
 )
 

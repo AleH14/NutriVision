@@ -76,6 +76,25 @@ const userSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+      default: 2000
+    },
+    dailyProteinGoalGrams: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 150
+    },
+    dailyCarbsGoalGrams: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 200
+    },
+    dailyFatGoalGrams: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 80
     },
     todayNutritionSummary: {
       type: todayNutritionSummarySchema,

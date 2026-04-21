@@ -35,11 +35,12 @@ function buildFoodAnalysisPrompt({ photoTakenTime, userProfile }) {
 function buildDailyGoalPrompt(userProfile) {
   return [
     "Eres un nutricionista profesional.",
-    "Calcula la meta diaria de calorias (kcal) para este usuario segun su perfil.",
+    "Calcula la meta diaria de calorias (kcal) y macronutrientes (proteinas, carbohidratos, grasas) para este usuario segun su perfil.",
     "Entrega SOLO JSON valido con esta estructura exacta:",
-    '{ "dailyCalorieGoalKcal": 0, "rationale": "string" }',
+    '{ "dailyCalorieGoalKcal": 0, "dailyProteinGoalGrams": 0, "dailyCarbsGoalGrams": 0, "dailyFatGoalGrams": 0, "rationale": "string" }',
     "Reglas:",
-    "- dailyCalorieGoalKcal debe ser entero positivo.",
+    "- Todas las metas deben ser enteros positivos.",
+    "- Asegurate de que la suma calórica de los macros sea coherente con la meta calórica total (Aprox 4kcal/g proteina/carbos, 9kcal/g grasa).",
     "- rationale debe ser breve.",
     JSON.stringify(userProfile),
   ].join("\n");
@@ -114,6 +115,9 @@ async function calculateDailyCalorieGoal(userProfile) {
 
   return {
     dailyCalorieGoalKcal: Math.round(parsed.dailyCalorieGoalKcal),
+    dailyProteinGoalGrams: Math.round(parsed.dailyProteinGoalGrams || (parsed.dailyCalorieGoalKcal * 0.25 / 4)),
+    dailyCarbsGoalGrams: Math.round(parsed.dailyCarbsGoalGrams || (parsed.dailyCalorieGoalKcal * 0.45 / 4)),
+    dailyFatGoalGrams: Math.round(parsed.dailyFatGoalGrams || (parsed.dailyCalorieGoalKcal * 0.30 / 9)),
     rationale: typeof parsed.rationale === "string" ? parsed.rationale : "",
     rawResponse: response,
   };

@@ -124,10 +124,14 @@ class InicioActivity : AppCompatActivity() {
                     Log.d(TAG, "Usuario obtenido: ${usuario.fullName}")
                     Log.d(TAG, "dailyCalorieGoalKcal: ${usuario.dailyCalorieGoalKcal}")
                     
-                    // Meta diaria de calorías
+                    // Metas diarias desde el perfil del usuario (IA o calculadas)
                     val metaCaloriasDiarias = usuario.dailyCalorieGoalKcal.toInt()
+                    val proteinasMax = usuario.dailyProteinGoalGrams
+                    val carbosMax = usuario.dailyCarbsGoalGrams
+                    val grasasMax = usuario.dailyFatGoalGrams
+
                     tvMetaDiaria?.text = "Meta Diaria: $metaCaloriasDiarias kcal"
-                    Log.d(TAG, "Meta diaria actualizada: $metaCaloriasDiarias kcal")
+                    Log.d(TAG, "Metas actualizadas: $metaCaloriasDiarias kcal, P: $proteinasMax, C: $carbosMax, G: $grasasMax")
                     
                     // Resumen nutricional de hoy
                     val resumen = usuario.todayNutritionSummary
@@ -158,11 +162,7 @@ class InicioActivity : AppCompatActivity() {
                         // Actualizar ProgressBar de calorías (max 100%)
                         progressCalorias?.progress = porcentaje.coerceAtMost(100)
                         
-                        // Actualizar macronutrientes
-                        val proteinasMax = 150  // Meta típica de proteína
-                        val carbosMax = 200     // Meta típica de carbos
-                        val grasasMax = 80      // Meta típica de grasas
-                        
+                        // Actualizar macronutrientes con valores del usuario
                         tvProteinasHoy?.text = "${resumen.proteinGramsConsumed.toInt()} / $proteinasMax g"
                         tvCarbsHoy?.text = "${resumen.carbsGramsConsumed.toInt()} / $carbosMax g"
                         tvGrasasHoy?.text = "${resumen.fatGramsConsumed.toInt()} / $grasasMax g"
@@ -183,7 +183,7 @@ class InicioActivity : AppCompatActivity() {
                         
                     } else {
                         Log.w(TAG, "Resumen es null, mostrando valores en 0")
-                        // Si no hay resumen aún, mostrar 0
+                        // Si no hay resumen aún, mostrar 0 con metas del usuario
                         tvCaloriasConsumidas?.text = "0 /"
                         tvCaloriasMeta?.text = " $metaCaloriasDiarias kcal"
                         tvPorcentaje?.text = "0%"
@@ -191,12 +191,15 @@ class InicioActivity : AppCompatActivity() {
                         
                         progressCalorias?.progress = 0
                         
-                        tvProteinasHoy?.text = "0 / 150 g"
-                        tvCarbsHoy?.text = "0 / 200 g"
-                        tvGrasasHoy?.text = "0 / 80 g"
+                        tvProteinasHoy?.text = "0 / $proteinasMax g"
+                        tvCarbsHoy?.text = "0 / $carbosMax g"
+                        tvGrasasHoy?.text = "0 / $grasasMax g"
                         
+                        progressProteinas?.max = proteinasMax
                         progressProteinas?.progress = 0
+                        progressCarbos?.max = carbosMax
                         progressCarbos?.progress = 0
+                        progressGrasas?.max = grasasMax
                         progressGrasas?.progress = 0
                     }
                     

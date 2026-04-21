@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
     // Al usar un teléfono físico, usamos la IP de tu PC en la red local
-    private const val BASE_URL = "http://192.168.1.37:4000/"
+    private const val BASE_URL = "http://192.168.1.14:4000/"
 
     private val logging = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
