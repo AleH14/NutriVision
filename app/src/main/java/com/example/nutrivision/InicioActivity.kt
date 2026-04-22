@@ -18,6 +18,9 @@ import com.example.nutrivision.data.repository.NutriRepository
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import kotlinx.coroutines.launch
 import kotlin.math.round
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class InicioActivity : AppCompatActivity() {
 
@@ -94,16 +97,11 @@ class InicioActivity : AppCompatActivity() {
         
         Log.d(TAG, "initViews: tvSaludo=${tvSaludo != null}, progressCalorias=${progressCalorias != null}")
     }
-    
+
     private fun cargarDatosInicio() {
-        Log.d(TAG, "cargarDatosInicio: Iniciando carga de datos")
-        
         val token = TokenManager.getToken(this)
         val nombreUsuario = TokenManager.getUserName(this)
-        
-        Log.d(TAG, "Token obtenido: ${token != null}")
-        Log.d(TAG, "Nombre usuario: $nombreUsuario")
-        
+
         if (token == null) {
             Log.e(TAG, "Token es null, redirigiendo a login")
             irALogin()
@@ -115,14 +113,14 @@ class InicioActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = repository.getProfile(token)
-                
-                Log.d(TAG, "Respuesta recibida: isSuccessful=${response.isSuccessful}, code=${response.code()}")
-                
+                // Obtener fecha actual del dispositivo
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+
+                val response = repository.getProfile(token, today)
+
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
-                    Log.d(TAG, "dailyCalorieGoalKcal: ${usuario.dailyCalorieGoalKcal}")
-                    
+
                     // Metas diarias desde el perfil del usuario (IA o calculadas)
                     val metaCaloriasDiarias = usuario.dailyCalorieGoalKcal.toInt()
                     val proteinasMax = usuario.dailyProteinGoalGrams
@@ -131,68 +129,66 @@ class InicioActivity : AppCompatActivity() {
 
                     tvMetaDiaria?.text = "Meta Diaria: $metaCaloriasDiarias kcal"
                     Log.d(TAG, "Metas actualizadas: $metaCaloriasDiarias kcal, P: $proteinasMax, C: $carbosMax, G: $grasasMax")
-                    
+
                     // Resumen nutricional de hoy
                     val resumen = usuario.todayNutritionSummary
                     if (resumen != null) {
                         // Calorías consumidas (proteína + carbos + grasas)
-                        val caloriasConsumidas = (resumen.proteinGramsConsumed * 4 + 
-                                                  resumen.carbsGramsConsumed * 4 + 
-                                                  resumen.fatGramsConsumed * 9).toInt()
-                        
+                        val caloriasConsumidas = (resumen.proteinGramsConsumed * 4 +
+                                resumen.carbsGramsConsumed * 4 +
+                                resumen.fatGramsConsumed * 9).toInt()
+
                         // Calcular porcentaje
                         val porcentaje = if (metaCaloriasDiarias > 0) {
                             ((caloriasConsumidas.toFloat() / metaCaloriasDiarias) * 100).toInt()
                         } else {
                             0
                         }
-                        
+
                         // Calorías restantes
                         val caloriasRestantes = (metaCaloriasDiarias - caloriasConsumidas).coerceAtLeast(0)
-                        
-                        Log.d(TAG, "Calorías: $caloriasConsumidas / $metaCaloriasDiarias kcal ($porcentaje%)")
-                        
+
                         // Actualizar TextViews de calorías
                         tvCaloriasConsumidas?.text = "$caloriasConsumidas /"
                         tvCaloriasMeta?.text = " $metaCaloriasDiarias kcal"
                         tvPorcentaje?.text = "$porcentaje%"
                         tvRestante?.text = "Te quedan $caloriasRestantes kcal para completar el día"
-                        
+
                         // Actualizar ProgressBar de calorías (max 100%)
                         progressCalorias?.progress = porcentaje.coerceAtMost(100)
-                        
+
                         // Actualizar macronutrientes con valores del usuario
                         tvProteinasHoy?.text = "${resumen.proteinGramsConsumed.toInt()} / $proteinasMax g"
                         tvCarbsHoy?.text = "${resumen.carbsGramsConsumed.toInt()} / $carbosMax g"
                         tvGrasasHoy?.text = "${resumen.fatGramsConsumed.toInt()} / $grasasMax g"
-                        
+
                         progressProteinas?.max = proteinasMax
                         progressProteinas?.progress = resumen.proteinGramsConsumed.toInt().coerceAtMost(proteinasMax)
-                        
+
                         progressCarbos?.max = carbosMax
                         progressCarbos?.progress = resumen.carbsGramsConsumed.toInt().coerceAtMost(carbosMax)
-                        
+
                         progressGrasas?.max = grasasMax
                         progressGrasas?.progress = resumen.fatGramsConsumed.toInt().coerceAtMost(grasasMax)
-                        
+
                         Log.d(TAG, "Macronutrientes actualizados:")
                         Log.d(TAG, "  Proteína: ${resumen.proteinGramsConsumed.toInt()} / $proteinasMax g")
                         Log.d(TAG, "  Carbos: ${resumen.carbsGramsConsumed.toInt()} / $carbosMax g")
                         Log.d(TAG, "  Grasas: ${resumen.fatGramsConsumed.toInt()} / $grasasMax g")
-                        
+
                     } else {
                         // Si no hay resumen aún, mostrar 0 con metas del usuario
                         tvCaloriasConsumidas?.text = "0 /"
                         tvCaloriasMeta?.text = " $metaCaloriasDiarias kcal"
                         tvPorcentaje?.text = "0%"
                         tvRestante?.text = "Te quedan $metaCaloriasDiarias kcal para completar el día"
-                        
+
                         progressCalorias?.progress = 0
-                        
+
                         tvProteinasHoy?.text = "0 / $proteinasMax g"
                         tvCarbsHoy?.text = "0 / $carbosMax g"
                         tvGrasasHoy?.text = "0 / $grasasMax g"
-                        
+
                         progressProteinas?.max = proteinasMax
                         progressProteinas?.progress = 0
                         progressCarbos?.max = carbosMax
@@ -200,7 +196,7 @@ class InicioActivity : AppCompatActivity() {
                         progressGrasas?.max = grasasMax
                         progressGrasas?.progress = 0
                     }
-                    
+
                 } else {
                     val errorMsg = "Error al cargar datos: ${response.code()}"
                     Log.e(TAG, errorMsg)

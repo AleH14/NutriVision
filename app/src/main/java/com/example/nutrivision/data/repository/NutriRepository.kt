@@ -16,8 +16,8 @@ class NutriRepository(private val apiService: ApiService) {
         return apiService.register(request)
     }
 
-    suspend fun getProfile(token: String): Response<User> {
-        return apiService.getProfile("Bearer $token")
+    suspend fun getProfile(token: String, clientDate: String? = null): Response<User> {
+        return apiService.getProfile("Bearer $token", clientDate)
     }
 
     suspend fun updateProfile(token: String, request: UpdateUserRequest): Response<User> {

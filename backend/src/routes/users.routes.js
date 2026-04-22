@@ -146,6 +146,23 @@ router.post("/login", async (req, res, next) => {
 router.get("/profile", verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select("-password");
+
+    // Recibir la fecha del cliente (Android) desde el header o query
+    // El cliente enviará la fecha actual de su dispositivo
+    const clientDate = req.headers['x-client-date'] || new Date().toISOString().slice(0, 10);
+
+    // Verificar y reiniciar según la fecha del cliente
+    if (user.todayNutritionSummary && user.todayNutritionSummary.date !== clientDate) {
+      user.todayNutritionSummary = {
+        date: clientDate,
+        proteinGramsConsumed: 0,
+        carbsGramsConsumed: 0,
+        fatGramsConsumed: 0
+      };
+
+      await user.save();
+    }
+
     res.json(user);
   } catch (error) {
     next(error);
@@ -232,19 +249,13 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     const Analysis = require("../models/analysis.model");
 
-    // 🔥 IMPORTANTE: Usar la fecha LOCAL que envía el cliente
-    // El cliente envía: "2026-04-21T19:16:55" (hora local)
-    // MongoDB lo guardará como Date, pero queremos mantener la hora local
+    // Guardar análisis
     let analysisDate;
     if (createdAt) {
-      // Crear fecha manteniendo la hora local (sin convertir a UTC)
-      // Parsear la fecha local y crear un Date object
       const [datePart, timePart] = createdAt.split('T');
       const [year, month, day] = datePart.split('-');
       const [hour, minute, second] = timePart.split(':');
 
-      // Crear fecha en UTC pero con los valores locales
-      // Esto hace que MongoDB guarde 2026-04-21T19:16:55.000Z en lugar de convertirlo
       analysisDate = new Date(Date.UTC(
         parseInt(year),
         parseInt(month) - 1,
@@ -269,11 +280,13 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     await analysis.save();
 
-    // Actualizar resumen diario usando la fecha LOCAL
-    const hoy = date || new Date().toISOString().slice(0, 10);
+    // Otener fecha actual LOCAL
+    const hoy = new Date().toISOString().slice(0, 10);
     const user = await User.findById(userId);
 
-    if (user.todayNutritionSummary.date !== hoy) {
+    // Verificar si es un nuevo día y reiniciar si es necesario
+    if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== hoy) {
+      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${hoy})`);
       user.todayNutritionSummary = {
         date: hoy,
         proteinGramsConsumed: 0,
@@ -282,6 +295,7 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       };
     }
 
+    // Sumar los nuevos valores
     user.todayNutritionSummary.proteinGramsConsumed += nutrition.proteinGrams;
     user.todayNutritionSummary.carbsGramsConsumed += nutrition.carbsGrams;
     user.todayNutritionSummary.fatGramsConsumed += nutrition.fatGrams;

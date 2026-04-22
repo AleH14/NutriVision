@@ -88,8 +88,7 @@ class DatosInicialesActivity : AppCompatActivity() {
         btnObjetivoBajar = findViewById(R.id.btnObjetivoBajar)
         btnGuardarPerfil = findViewById(R.id.btnGuardarPerfil)
         btnBackPerfil = findViewById(R.id.btnBackPerfil)
-        
-        // Buscamos o creamos un progress bar
+
         progressBar = findViewById(R.id.progressBarDatos) ?: ProgressBar(this)
     }
 
@@ -105,12 +104,16 @@ class DatosInicialesActivity : AppCompatActivity() {
 
     private fun observeViewModel() {
         authViewModel.authResult.observe(this) { result ->
+            // Restaurar botón
+            btnGuardarPerfil.isEnabled = true
+            btnGuardarPerfil.text = "Guardar"
+
             result.onSuccess { authResponse ->
                 // Guardar token
                 authResponse.token?.let { token ->
                     TokenManager.saveToken(this@DatosInicialesActivity, token)
                 }
-                
+
                 // Guardar info del usuario
                 authResponse.user?.let { user ->
                     TokenManager.saveUserInfo(
@@ -120,7 +123,7 @@ class DatosInicialesActivity : AppCompatActivity() {
                         user.fullName
                     )
                 }
-                
+
                 mostrarToastExitoso("✓ Registro completo. ¡Bienvenido!")
                 Handler(Looper.getMainLooper()).postDelayed({
                     val intent = Intent(this, InicioActivity::class.java)
@@ -133,8 +136,12 @@ class DatosInicialesActivity : AppCompatActivity() {
         }
 
         authViewModel.isLoading.observe(this) { isLoading ->
-            btnGuardarPerfil.isEnabled = !isLoading
-            // Aquí podrías mostrar el progress bar si lo tienes en el XML
+            if (isLoading) {
+                btnGuardarPerfil.isEnabled = false
+                btnGuardarPerfil.text = "Cargando..."
+            } else {
+                // No restaurar aquí porque se restaura en el resultado
+            }
         }
     }
 
@@ -199,8 +206,7 @@ class DatosInicialesActivity : AppCompatActivity() {
             val email = intent.getStringExtra("EXTRA_EMAIL") ?: ""
             val password = intent.getStringExtra("EXTRA_PASSWORD") ?: ""
 
-            // Calculo simple de calorías (Harris-Benedict simplificado para el ejemplo)
-            val caloriasBase = 2000.0 
+            val caloriasBase = 2000.0
 
             val request = RegisterRequest(
                 fullName = nombre,
@@ -214,6 +220,10 @@ class DatosInicialesActivity : AppCompatActivity() {
                 personalGoal = objetivoSeleccionado!!,
                 dailyCalorieGoalKcal = caloriasBase
             )
+
+            // Cambiar texto del botón a "Cargando..."
+            btnGuardarPerfil.isEnabled = false
+            btnGuardarPerfil.text = "Cargando..."
 
             authViewModel.register(request)
         }

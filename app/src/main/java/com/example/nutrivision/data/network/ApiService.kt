@@ -15,7 +15,10 @@ interface ApiService {
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
     @GET("api/users/profile")
-    suspend fun getProfile(@Header("Authorization") token: String): Response<User>
+    suspend fun getProfile(
+        @Header("Authorization") token: String,
+        @Header("X-Client-Date") clientDate: String? = null
+    ): Response<User>
 
     @PUT("api/users/profile")
     suspend fun updateProfile(
