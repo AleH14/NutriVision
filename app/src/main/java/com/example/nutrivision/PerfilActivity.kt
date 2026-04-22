@@ -1,7 +1,9 @@
 package com.example.nutrivision
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -56,7 +58,7 @@ class PerfilActivity : AppCompatActivity() {
     private var generoActual = ""
     private var objetivoActual = ""
     private var dailyCalorieGoalKcal = 0
-    
+
     // View para meta diaria
     private var tvMetaDiariaKcal: TextView? = null
     private var btnCalcularMetaDiaria: MaterialButton? = null
@@ -66,7 +68,7 @@ class PerfilActivity : AppCompatActivity() {
         setContentView(R.layout.activity_perfil)
 
         repository = NutriRepository(RetrofitClient.instance)
-        
+
         initViews()
         setupNavigation()
         setupListeners()
@@ -96,10 +98,10 @@ class PerfilActivity : AppCompatActivity() {
         chipAumentarMusculo = findViewById(R.id.chipAumentarMusculo)
         chipSubirPeso = findViewById(R.id.chipSubirPeso)
         chipBajarPeso = findViewById(R.id.chipBajarPeso)
-        
+
         tvMetaDiariaKcal = findViewById(R.id.tvMetaDiariaKcal)
         btnCalcularMetaDiaria = findViewById(R.id.btnCalcularMetaDiaria)
-        
+
         btnCalcularMetaDiaria?.setOnClickListener {
             calcularMetaDiaria()
         }
@@ -125,7 +127,7 @@ class PerfilActivity : AppCompatActivity() {
                     generoActual = usuario.gender
                     objetivoActual = usuario.personalGoal
                     dailyCalorieGoalKcal = usuario.dailyCalorieGoalKcal.toInt()
-                    
+
                     cargarDatosPerfil()
                 } else {
                     mostrarToastError("Error al cargar perfil")
@@ -308,7 +310,7 @@ class PerfilActivity : AppCompatActivity() {
                 if (response.isSuccessful) {
                     salirModoEdicion()
                     cargarDatosPerfil()
-                    mostrarToastExito("✓ Perfil actualizado")
+                    mostrarToastExito("Perfil actualizado")
                 } else {
                     mostrarToastError("Error al actualizar perfil")
                 }
@@ -338,16 +340,67 @@ class PerfilActivity : AppCompatActivity() {
     }
 
     private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
-    
+
     private fun irALogin() {
         val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)
         finishAffinity()
     }
-    
-    private fun mostrarToastExito(mensaje: String) = Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
-    private fun mostrarToastError(mensaje: String) = Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
-    
+
+    @Suppress("DEPRECATION")
+    private fun mostrarToastExito(mensaje: String) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, R.color.success_green))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun mostrarToastError(mensaje: String) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.holo_red_dark))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
+    }
+
     private fun calcularMetaDiaria() {
         val token = TokenManager.getToken(this) ?: return
         btnCalcularMetaDiaria?.isEnabled = false
@@ -359,7 +412,7 @@ class PerfilActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     dailyCalorieGoalKcal = response.body()!!.dailyCalorieGoalKcal ?: 0
                     tvMetaDiariaKcal?.text = dailyCalorieGoalKcal.toString()
-                    mostrarToastExito("✓ Meta calculada: $dailyCalorieGoalKcal kcal")
+                    mostrarToastExito("Meta calculada: $dailyCalorieGoalKcal kcal")
                 } else {
                     mostrarToastError("Error al calcular meta diaria")
                 }
