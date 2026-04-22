@@ -2,11 +2,29 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const rateLimit = require("express-rate-limit");
 const User = require("../models/user.model");
 const env = require("../config/env");
 const { calculateDailyCalorieGoal } = require("../services/openai.service");
 
 const router = express.Router();
+
+// Rate limiters para endpoints sensibles
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiados intentos. Espera 15 minutos antes de intentarlo de nuevo." }
+});
+
+const analyzeImageLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Demasiadas solicitudes de análisis. Intenta de nuevo en un minuto." }
+});
 
 // Configurar multer para imágenes
 const upload = multer({
@@ -124,18 +142,19 @@ router.post("/register", async (req, res, next) => {
 });
 
 // POST /api/users/login
-router.post("/login", async (req, res, next) => {
+router.post("/login", authLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || typeof email !== "string" || !email.trim()) {
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    if (!normalizedEmail) {
       return res.status(400).json({ message: "El correo electrónico es requerido" });
     }
     if (!password || typeof password !== "string" || !password.trim()) {
       return res.status(400).json({ message: "La contraseña es requerida" });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
@@ -233,7 +252,7 @@ router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
 });
 
 // POST /api/users/analyze-food-image
-router.post("/analyze-food-image", verifyToken, upload.single('image'), handleMulterError, async (req, res, next) => {
+router.post("/analyze-food-image", verifyToken, analyzeImageLimiter, upload.single('image'), handleMulterError, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Imagen requerida" });
 
@@ -368,7 +387,7 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
 });
 
 // POST /api/users/change-password - Cambiar contraseña (requiere sesión activa)
-router.post("/change-password", verifyToken, async (req, res, next) => {
+router.post("/change-password", authLimiter, verifyToken, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
 
