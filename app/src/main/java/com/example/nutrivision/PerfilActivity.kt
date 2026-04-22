@@ -27,6 +27,7 @@ class PerfilActivity : AppCompatActivity() {
     private lateinit var tvNombreUsuario: TextView
     private lateinit var btnEditarPerfil: TextView
     private lateinit var btnCerrarSesion: TextView
+    private lateinit var btnCambiarPassword: TextView
     private lateinit var btnGuardarCambios: MaterialButton
 
     // EditTexts
@@ -83,6 +84,7 @@ class PerfilActivity : AppCompatActivity() {
         tvNombreUsuario = findViewById(R.id.tvNombreUsuario)
         btnEditarPerfil = findViewById(R.id.btnEditarPerfil)
         btnCerrarSesion = findViewById(R.id.btnCerrarSesion)
+        btnCambiarPassword = findViewById(R.id.btnCambiarPassword)
         btnGuardarCambios = findViewById(R.id.btnGuardarCambios)
 
         editEdad = findViewById(R.id.editEdad)
@@ -166,6 +168,9 @@ class PerfilActivity : AppCompatActivity() {
             if (isEditing) cancelarEdicion() else entrarModoEdicion()
         }
         btnGuardarCambios.setOnClickListener { guardarCambios() }
+        btnCambiarPassword.setOnClickListener {
+            startActivity(Intent(this, CambiarPasswordActivity::class.java))
+        }
         btnCerrarSesion.setOnClickListener {
             TokenManager.logout(this)
             irALogin()

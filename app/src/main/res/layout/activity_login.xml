@@ -141,7 +141,8 @@
                 android:fontFamily="@font/montserrat_semibold"
                 android:gravity="end"
                 android:padding="6dp"
-                android:clickable="true"/>
+                android:clickable="true"
+                android:visibility="gone"/>
 
             <!-- BOTON -->
             <com.google.android.material.button.MaterialButton

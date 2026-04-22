@@ -64,6 +64,7 @@ interface ApiService {
 
     @POST("api/users/change-password")
     suspend fun changePassword(
+        @Header("Authorization") token: String,
         @Body request: Map<String, String>
     ): Response<Map<String, String>>
 

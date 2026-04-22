@@ -23,8 +23,7 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@drawable/ic_launcher_background"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NutriVision"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.NutriVision">
         <activity
             android:name=".CambiarPasswordActivity"
             android:exported="false" />

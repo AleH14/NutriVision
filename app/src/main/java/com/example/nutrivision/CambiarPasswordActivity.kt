@@ -18,10 +18,10 @@ import kotlinx.coroutines.launch
 
 class CambiarPasswordActivity : AppCompatActivity() {
 
-    private lateinit var lblEmail: TextInputLayout
+    private lateinit var lblCurrentPassword: TextInputLayout
     private lateinit var lblNewPassword: TextInputLayout
     private lateinit var lblConfirmPassword: TextInputLayout
-    private lateinit var txtEmail: TextInputEditText
+    private lateinit var txtCurrentPassword: TextInputEditText
     private lateinit var txtNewPassword: TextInputEditText
     private lateinit var txtConfirmPassword: TextInputEditText
     private lateinit var btnCambiarPassword: MaterialButton
@@ -33,6 +33,14 @@ class CambiarPasswordActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_cambiar_password)
 
+        // Redirigir a login si no hay sesión activa
+        val token = TokenManager.getToken(this)
+        if (token == null) {
+            mostrarToastError("Debes iniciar sesión para cambiar tu contraseña")
+            finish()
+            return
+        }
+
         repository = NutriRepository(RetrofitClient.instance)
 
         initViews()
@@ -40,10 +48,10 @@ class CambiarPasswordActivity : AppCompatActivity() {
     }
 
     private fun initViews() {
-        lblEmail = findViewById(R.id.lblEmail)
+        lblCurrentPassword = findViewById(R.id.lblCurrentPassword)
         lblNewPassword = findViewById(R.id.lblNewPassword)
         lblConfirmPassword = findViewById(R.id.lblConfirmPassword)
-        txtEmail = findViewById(R.id.txtEmail)
+        txtCurrentPassword = findViewById(R.id.txtCurrentPassword)
         txtNewPassword = findViewById(R.id.txtNewPassword)
         txtConfirmPassword = findViewById(R.id.txtConfirmPassword)
         btnCambiarPassword = findViewById(R.id.btnCambiarPassword)
@@ -59,24 +67,21 @@ class CambiarPasswordActivity : AppCompatActivity() {
     }
 
     private fun cambiarPassword() {
-        val email = txtEmail.text.toString().trim()
+        val currentPassword = txtCurrentPassword.text.toString().trim()
         val newPassword = txtNewPassword.text.toString().trim()
         val confirmPassword = txtConfirmPassword.text.toString().trim()
 
         var isValid = true
 
-        // EMAIL
-        if (email.isEmpty()) {
-            lblEmail.error = "Ingresa tu correo"
-            isValid = false
-        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            lblEmail.error = "Correo inválido"
+        // CONTRASEÑA ACTUAL
+        if (currentPassword.isEmpty()) {
+            lblCurrentPassword.error = "Ingresa tu contraseña actual"
             isValid = false
         } else {
-            lblEmail.error = null
+            lblCurrentPassword.error = null
         }
 
-        // PASSWORD
+        // NUEVA CONTRASEÑA
         if (newPassword.length < 6) {
             lblNewPassword.error = "Mínimo 6 caracteres"
             isValid = false
@@ -84,7 +89,7 @@ class CambiarPasswordActivity : AppCompatActivity() {
             lblNewPassword.error = null
         }
 
-        // CONFIRM
+        // CONFIRMAR
         if (newPassword != confirmPassword) {
             lblConfirmPassword.error = "No coinciden"
             isValid = false
@@ -93,24 +98,31 @@ class CambiarPasswordActivity : AppCompatActivity() {
         }
 
         if (isValid) {
-            realizarCambioPassword(email, newPassword)
+            realizarCambioPassword(currentPassword, newPassword)
         }
     }
 
-    private fun realizarCambioPassword(email: String, newPassword: String) {
+    private fun realizarCambioPassword(currentPassword: String, newPassword: String) {
         btnCambiarPassword.isEnabled = false
         btnCambiarPassword.text = "Cambiando..."
 
+        val token = TokenManager.getToken(this) ?: run {
+            mostrarToastError("Sesión expirada. Inicia sesión nuevamente.")
+            finish()
+            return
+        }
+
         lifecycleScope.launch {
             try {
-                val response = repository.changePassword(email, newPassword)
+                val response = repository.changePassword(token, currentPassword, newPassword)
 
                 if (response.isSuccessful) {
                     mostrarToastExitoso("Contraseña actualizada")
                     finish()
                 } else {
                     val mensaje = when (response.code()) {
-                        404 -> "Error al cambiar contraseña"
+                        401 -> "Contraseña actual incorrecta"
+                        404 -> "Usuario no encontrado"
                         400 -> "Datos inválidos"
                         else -> "Error al cambiar contraseña"
                     }

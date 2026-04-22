@@ -127,7 +127,15 @@ router.post("/register", async (req, res, next) => {
 router.post("/login", async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email: email.toLowerCase() });
+
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(400).json({ message: "El correo electrónico es requerido" });
+    }
+    if (!password || typeof password !== "string" || !password.trim()) {
+      return res.status(400).json({ message: "La contraseña es requerida" });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user || !(await bcrypt.compare(password, user.password))) {
       return res.status(401).json({ message: "Credenciales inválidas" });
     }
@@ -146,6 +154,7 @@ router.post("/login", async (req, res, next) => {
 router.get("/profile", verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select("-password");
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     // Recibir la fecha del cliente (Android) desde el header o query
     // El cliente enviará la fecha actual de su dispositivo
@@ -174,6 +183,7 @@ router.put("/profile", verifyToken, async (req, res, next) => {
   try {
     const fields = ["age", "heightCm", "currentWeightLb", "gender", "physicalActivity", "personalGoal", "dailyCalorieGoalKcal", "dailyProteinGoalGrams", "dailyCarbsGoalGrams", "dailyFatGoalGrams"];
     const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     fields.forEach(field => {
       if (req.body[field] !== undefined) user[field] = req.body[field];
@@ -223,19 +233,32 @@ router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
 });
 
 // POST /api/users/analyze-food-image
-router.post("/analyze-food-image", upload.single('image'), handleMulterError, verifyToken, async (req, res, next) => {
+router.post("/analyze-food-image", verifyToken, upload.single('image'), handleMulterError, async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Imagen requerida" });
 
     const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
     const { analyzeFoodImageBuffer } = require("../services/openai.service");
 
-    const analysisResult = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
-      photoTakenTime: req.body.photoTakenTime || new Date().toLocaleTimeString(),
+    // Formatear hora a HH:mm para el prompt
+    const now = new Date();
+    const rawTime = req.body.photoTakenTime;
+    const photoTakenTime = (typeof rawTime === "string" && /^\d{2}:\d{2}/.test(rawTime.trim()))
+      ? rawTime.trim().slice(0, 5)
+      : `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+    const result = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
+      photoTakenTime,
       userProfile: user
     });
 
-    res.json({ analysis: analysisResult.parsed });
+    if (!result.isFood) {
+      return res.status(422).json({ isFood: false, message: result.message });
+    }
+
+    res.json({ isFood: true, analysis: result.parsed });
   } catch (error) {
     next(error);
   }
@@ -250,23 +273,8 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
     const Analysis = require("../models/analysis.model");
 
     // Guardar análisis
-    let analysisDate;
-    if (createdAt) {
-      const [datePart, timePart] = createdAt.split('T');
-      const [year, month, day] = datePart.split('-');
-      const [hour, minute, second] = timePart.split(':');
-
-      analysisDate = new Date(Date.UTC(
-        parseInt(year),
-        parseInt(month) - 1,
-        parseInt(day),
-        parseInt(hour),
-        parseInt(minute),
-        parseInt(second || 0)
-      ));
-    } else {
-      analysisDate = new Date();
-    }
+    // Usar new Date(createdAt) para respetar la zona horaria del cliente (ISO 8601 con offset)
+    const analysisDate = createdAt ? new Date(createdAt) : new Date();
 
     const analysis = new Analysis({
       userId,
@@ -280,9 +288,10 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     await analysis.save();
 
-    // Otener fecha actual LOCAL
+    // Obtener fecha actual LOCAL
     const hoy = new Date().toISOString().slice(0, 10);
     const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     // Verificar si es un nuevo día y reiniciar si es necesario
     if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== hoy) {
@@ -323,32 +332,18 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
     let query = { userId };
 
     if (date) {
-      // Crear rango de fechas en UTC para buscar
-      // La fecha que viene del frontend es LOCAL (ej: "2026-04-21")
-      // Necesitamos buscar desde las 00:00:00 UTC hasta las 23:59:59 UTC de ese día
-      // Pero como El Salvador es UTC-6, el rango debe ajustarse
+      // Validar formato de fecha YYYY-MM-DD
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res.status(400).json({ message: "Formato de fecha inválido, se espera YYYY-MM-DD" });
+      }
 
-      const localDate = new Date(date);
-
-      // Inicio del día en UTC (00:00:00 UTC)
-      const startDate = new Date(Date.UTC(
-        localDate.getUTCFullYear(),
-        localDate.getUTCMonth(),
-        localDate.getUTCDate(),
-        0, 0, 0, 0
-      ));
-
-      // Fin del día en UTC (23:59:59 UTC)
-      const endDate = new Date(Date.UTC(
-        localDate.getUTCFullYear(),
-        localDate.getUTCMonth(),
-        localDate.getUTCDate(),
-        23, 59, 59, 999
-      ));
+      // Construir el rango de un día completo en UTC a partir del string de fecha
+      const startDate = new Date(`${date}T00:00:00.000Z`);
+      const endDate = new Date(`${date}T23:59:59.999Z`);
 
       query.createdAt = { $gte: startDate, $lte: endDate };
 
-      console.log(`Buscando análisis para fecha local: ${date}`);
+      console.log(`Buscando análisis para fecha: ${date}`);
       console.log(`Rango UTC: ${startDate.toISOString()} - ${endDate.toISOString()}`);
     }
 
@@ -372,16 +367,14 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
   }
 });
 
-// POST /api/users/change-password - Cambiar contraseña por email
-router.post("/change-password", async (req, res, next) => {
+// POST /api/users/change-password - Cambiar contraseña (requiere sesión activa)
+router.post("/change-password", verifyToken, async (req, res, next) => {
   try {
-    const { email, newPassword } = req.body;
-
-    console.log("Change password request for email:", email);
+    const { currentPassword, newPassword } = req.body;
 
     // Validaciones
-    if (!email) {
-      return res.status(400).json({ message: "El correo electrónico es requerido" });
+    if (!currentPassword) {
+      return res.status(400).json({ message: "La contraseña actual es requerida" });
     }
 
     if (!newPassword) {
@@ -392,22 +385,24 @@ router.post("/change-password", async (req, res, next) => {
       return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
     }
 
-    // Buscar usuario por email
-    const user = await User.findOne({ email: email.toLowerCase() });
+    // Buscar usuario autenticado
+    const user = await User.findById(req.userId);
     if (!user) {
-      return res.status(404).json({ message: "No existe una cuenta con este correo electrónico" });
+      return res.status(404).json({ message: "Usuario no encontrado" });
     }
 
-    // Hashear nueva contraseña
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    user.password = hashedPassword;
-    await user.save();
+    // Verificar contraseña actual
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(401).json({ message: "La contraseña actual es incorrecta" });
+    }
 
-    console.log("Password changed successfully for user:", user.email);
+    // Hashear y guardar nueva contraseña
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
 
     res.json({ message: "Contraseña actualizada exitosamente" });
   } catch (error) {
-    console.error("Error changing password:", error);
     next(error);
   }
 });

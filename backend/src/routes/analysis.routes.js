@@ -72,13 +72,20 @@ router.post("/image-quick", upload.single("image"), async (req, res, next) => {
       personalGoal: "maintain",
     };
 
-    const { parsed, rawResponse } = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
+    const result = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
       photoTakenTime,
       userProfile: defaultProfile,
     });
 
+    if (!result.isFood) {
+      return res.status(422).json({ isFood: false, message: result.message });
+    }
+
+    const { parsed } = result;
+
     res.status(200).json({
       success: true,
+      isFood: true,
       mealType: parsed.mealType,
       dishes: parsed.dishes,
       plateAnalysis: parsed.plateAnalysis,
@@ -121,10 +128,16 @@ router.post("/image", upload.single("image"), async (req, res, next) => {
       personalGoal: user.personalGoal,
     };
 
-    const { parsed, rawResponse } = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
+    const result = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
       photoTakenTime,
       userProfile: profile,
     });
+
+    if (!result.isFood) {
+      return res.status(422).json({ isFood: false, message: result.message });
+    }
+
+    const { parsed, rawResponse } = result;
 
     const foodsDetected = parsed.dishes.map((dish) => ({
       name: dish.name,

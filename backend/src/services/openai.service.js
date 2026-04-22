@@ -158,6 +158,7 @@ async function analyzeFoodImageBuffer(imageBuffer, mimeType, options = {}) {
     return {
       isFood: false,
       message: parsed.message || "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida.",
+      parsed: null,
       rawResponse: response
     };
   }
@@ -192,7 +193,7 @@ async function analyzeFoodImageBuffer(imageBuffer, mimeType, options = {}) {
     mealType: normalizeMealType(parsed.mealType),
   };
 
-  return { parsed: normalizedParsed, rawResponse: response };
+  return { isFood: true, parsed: normalizedParsed, message: null, rawResponse: response };
 }
 
 module.exports = { analyzeFoodImageBuffer, calculateDailyCalorieGoal };

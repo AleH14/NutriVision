@@ -25,7 +25,6 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var txtEmail: TextInputEditText
     private lateinit var txtPassword: TextInputEditText
     private lateinit var btnIniciarSesion: MaterialButton
-    private lateinit var txtOlvidarPassword: TextView
     private lateinit var btnIrRegistro: TextView
 
     private lateinit var repository: NutriRepository
@@ -46,18 +45,12 @@ class LoginActivity : AppCompatActivity() {
         txtEmail = findViewById(R.id.txtEmail)
         txtPassword = findViewById(R.id.txtPassword)
         btnIniciarSesion = findViewById(R.id.btnIniciarSesion)
-        txtOlvidarPassword = findViewById(R.id.txtOlvidarPassword)
         btnIrRegistro = findViewById(R.id.btnIrRegistro)
     }
 
     private fun setupListeners() {
         btnIniciarSesion.setOnClickListener {
             realizarLogin()
-        }
-
-        txtOlvidarPassword.setOnClickListener {
-            val intent = Intent(this, CambiarPasswordActivity::class.java)
-            startActivity(intent)
         }
 
         btnIrRegistro.setOnClickListener {
