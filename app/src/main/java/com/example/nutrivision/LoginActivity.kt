@@ -1,10 +1,14 @@
 package com.example.nutrivision
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
+import android.view.Gravity
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.nutrivision.data.model.LoginRequest
 import com.example.nutrivision.data.network.RetrofitClient
@@ -23,7 +27,7 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var btnIniciarSesion: MaterialButton
     private lateinit var txtOlvidarPassword: TextView
     private lateinit var btnIrRegistro: TextView
-    
+
     private lateinit var repository: NutriRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,7 +35,7 @@ class LoginActivity : AppCompatActivity() {
         setContentView(R.layout.activity_login)
 
         repository = NutriRepository(RetrofitClient.instance)
-        
+
         initViews()
         setupListeners()
     }
@@ -52,7 +56,8 @@ class LoginActivity : AppCompatActivity() {
         }
 
         txtOlvidarPassword.setOnClickListener {
-            Toast.makeText(this, "Recuperar contraseña", Toast.LENGTH_SHORT).show()
+            val intent = Intent(this, CambiarPasswordActivity::class.java)
+            startActivity(intent)
         }
 
         btnIrRegistro.setOnClickListener {
@@ -100,15 +105,15 @@ class LoginActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val response = repository.login(LoginRequest(email, password))
-                
+
                 if (response.isSuccessful && response.body() != null) {
                     val authResponse = response.body()!!
-                    
+
                     // Guardar token
                     authResponse.token?.let { token ->
                         TokenManager.saveToken(this@LoginActivity, token)
                     }
-                    
+
                     // Guardar info del usuario
                     authResponse.user?.let { user ->
                         TokenManager.saveUserInfo(
@@ -118,18 +123,18 @@ class LoginActivity : AppCompatActivity() {
                             user.fullName
                         )
                     }
-                    
-                    mostrarToastExito("¡Sesión iniciada exitosamente!")
-                    
+
+                    // Ir directamente a InicioActivity sin toast
                     val intent = Intent(this@LoginActivity, InicioActivity::class.java)
+                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
                     startActivity(intent)
                     finish()
                 } else {
-                    val errorMessage = response.body()?.message ?: "Error en el login"
-                    mostrarToastError(errorMessage)
+                    // Solo mostrar error de credenciales inválidas
+                    mostrarToastError("Credenciales inválidas")
                 }
             } catch (error: Exception) {
-                mostrarToastError("Error de conexión: ${error.message}")
+                mostrarToastError("Credenciales inválidas")
             } finally {
                 btnIniciarSesion.isEnabled = true
                 btnIniciarSesion.text = "Iniciar Sesión"
@@ -137,11 +142,30 @@ class LoginActivity : AppCompatActivity() {
         }
     }
 
-    private fun mostrarToastExito(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
-    }
-
+    @Suppress("DEPRECATION")
     private fun mostrarToastError(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@LoginActivity, android.R.color.holo_red_dark))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@LoginActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
     }
 }

@@ -232,7 +232,31 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     const Analysis = require("../models/analysis.model");
 
-    // Guardar el análisis con la fecha LOCAL proporcionada
+    // 🔥 IMPORTANTE: Usar la fecha LOCAL que envía el cliente
+    // El cliente envía: "2026-04-21T19:16:55" (hora local)
+    // MongoDB lo guardará como Date, pero queremos mantener la hora local
+    let analysisDate;
+    if (createdAt) {
+      // Crear fecha manteniendo la hora local (sin convertir a UTC)
+      // Parsear la fecha local y crear un Date object
+      const [datePart, timePart] = createdAt.split('T');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute, second] = timePart.split(':');
+
+      // Crear fecha en UTC pero con los valores locales
+      // Esto hace que MongoDB guarde 2026-04-21T19:16:55.000Z en lugar de convertirlo
+      analysisDate = new Date(Date.UTC(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+        parseInt(hour),
+        parseInt(minute),
+        parseInt(second || 0)
+      ));
+    } else {
+      analysisDate = new Date();
+    }
+
     const analysis = new Analysis({
       userId,
       imageName: imageFilename,
@@ -240,12 +264,12 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       nutrition: nutrition,
       notes: plateAnalysis,
       rawModelResponse: { mealType, plateAnalysis },
-      createdAt: createdAt  // Usar la fecha local que envía el cliente
+      createdAt: analysisDate
     });
 
     await analysis.save();
 
-    // Actualizar resumen diario del usuario usando la fecha LOCAL
+    // Actualizar resumen diario usando la fecha LOCAL
     const hoy = date || new Date().toISOString().slice(0, 10);
     const user = await User.findById(userId);
 
@@ -330,6 +354,46 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
       data: formattedAnalyses
     });
   } catch (error) {
+    next(error);
+  }
+});
+
+// POST /api/users/change-password - Cambiar contraseña por email
+router.post("/change-password", async (req, res, next) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    console.log("Change password request for email:", email);
+
+    // Validaciones
+    if (!email) {
+      return res.status(400).json({ message: "El correo electrónico es requerido" });
+    }
+
+    if (!newPassword) {
+      return res.status(400).json({ message: "La nueva contraseña es requerida" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
+    }
+
+    // Buscar usuario por email
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ message: "No existe una cuenta con este correo electrónico" });
+    }
+
+    // Hashear nueva contraseña
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    console.log("Password changed successfully for user:", user.email);
+
+    res.json({ message: "Contraseña actualizada exitosamente" });
+  } catch (error) {
+    console.error("Error changing password:", error);
     next(error);
   }
 });

@@ -69,4 +69,16 @@ class NutriRepository(private val apiService: ApiService) {
     ): Response<AnalysesResponse> {
         return apiService.getAnalysesByDate("Bearer $token", date)
     }
+
+    suspend fun changePassword(
+        email: String,
+        newPassword: String
+    ): Response<Map<String, String>> {
+        val request = mapOf(
+            "email" to email,
+            "newPassword" to newPassword
+        )
+        return apiService.changePassword(request)
+    }
+
 }

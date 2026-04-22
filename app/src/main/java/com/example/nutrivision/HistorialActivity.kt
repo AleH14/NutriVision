@@ -382,12 +382,10 @@ class HistorialActivity : AppCompatActivity() {
         cargarAnalisisDelDia(date)
     }
 
-    // 🔥 FUNCIÓN CORREGIDA - Manejo de errores mejorado
     private fun cargarAnalisisDelDia(date: Calendar) {
         val token = TokenManager.getToken(this)
         if (token == null) {
             Log.e(TAG, "Token no encontrado")
-            Toast.makeText(this, "Sesión expirada, inicia sesión nuevamente", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -414,18 +412,15 @@ class HistorialActivity : AppCompatActivity() {
 
                     analysesResponse.data.forEach { analysis ->
                         try {
-                            // Obtener mealType - si es null usar "Comida"
                             val mealType = analysis.rawModelResponse?.mealType ?: "Comida"
-
-                            // Obtener nombres de platos
                             val dishNames = if (analysis.foodsDetected.isNotEmpty()) {
                                 analysis.foodsDetected.joinToString(", ") { it.name }
                             } else {
                                 "Plato no especificado"
                             }
 
-                            // 🔥 Convertir hora UTC a LOCAL
-                            val time = convertirUTCALocal(analysis.createdAt)
+                            // EXTRAER HORA DIRECTAMENTE DEL STRING SIN CONVERSIÓN
+                            val time = extractHourFromString(analysis.createdAt)
 
                             Log.d(TAG, "📝 Procesando: $mealType - $dishNames - $time - ${analysis.nutrition.calories} kcal")
 
@@ -444,66 +439,34 @@ class HistorialActivity : AppCompatActivity() {
 
                     mealsByDate[dateStr] = meals
                     Log.d(TAG, "✅ Comidas cargadas para $dateStr: ${meals.size}")
-
-                    // Actualizar vista
                     renderMealsForSelectedDate()
                     renderCalendar()
                 } else {
                     val errorCode = response.code()
                     Log.w(TAG, "❌ Respuesta no exitosa: $errorCode")
-
-                    if (errorCode == 401) {
-                        Toast.makeText(this@HistorialActivity, "Sesión expirada", Toast.LENGTH_SHORT).show()
-                    } else {
-                        mealsByDate[dateStr] = emptyList()
-                        renderMealsForSelectedDate()
-                    }
+                    mealsByDate[dateStr] = emptyList()
+                    renderMealsForSelectedDate()
                 }
             } catch (error: Exception) {
                 Log.e(TAG, "❌ Error al cargar análisis", error)
                 mealsByDate[dateStr] = emptyList()
                 renderMealsForSelectedDate()
-                Toast.makeText(this@HistorialActivity, "Error de conexión", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // 🔥 NUEVA FUNCIÓN - Convertir UTC a hora local
-    private fun convertirUTCALocal(utcDateStr: String): String {
+    //  Extraer hora directamente del string
+    private fun extractHourFromString(dateTimeStr: String): String {
         return try {
-            val utcFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-            utcFormat.timeZone = TimeZone.getTimeZone("UTC")
-            val date = utcFormat.parse(utcDateStr)
-
-            if (date != null) {
-                val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                localFormat.timeZone = TimeZone.getDefault()
-                localFormat.format(date)
-            } else {
-                Log.e(TAG, "Fecha parseada es null: $utcDateStr")
-                "Hora no disponible"
-            }
+            // Buscar el patrón T seguido de HH:MM
+            val pattern = "T(\\d{2}:\\d{2})".toRegex()
+            val matchResult = pattern.find(dateTimeStr)
+            matchResult?.groupValues?.get(1) ?: "Hora no disponible"
         } catch (e: Exception) {
-            Log.e(TAG, "Error al convertir fecha UTC: $utcDateStr", e)
-            // Intentar con formato alternativo
-            try {
-                val altFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
-                altFormat.timeZone = TimeZone.getTimeZone("UTC")
-                val date = altFormat.parse(utcDateStr)
-                if (date != null) {
-                    val localFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
-                    localFormat.timeZone = TimeZone.getDefault()
-                    localFormat.format(date)
-                } else {
-                    "Hora no disponible"
-                }
-            } catch (e2: Exception) {
-                Log.e(TAG, "Error también con formato alternativo", e2)
-                "Hora no disponible"
-            }
+            Log.e(TAG, "Error extrayendo hora", e)
+            "Hora no disponible"
         }
     }
-
     private fun capitalizeMealType(type: String): String {
         return when (type.lowercase()) {
             "desayuno" -> "Desayuno"
@@ -557,18 +520,6 @@ class HistorialActivity : AppCompatActivity() {
                 cargarAnalisisDelDia(selectedDate) // 🔥 Recargar al cambiar año
             }
             .show()
-    }
-
-    fun submitMealsForSelectedDate(meals: List<MealEntry>) {
-        mealsByDate[dateKey(selectedDate)] = meals
-        renderMealsForSelectedDate()
-    }
-
-    fun submitMealsForDate(date: Calendar, meals: List<MealEntry>) {
-        mealsByDate[dateKey(date)] = meals
-        if (sameDate(date, selectedDate)) {
-            renderMealsForSelectedDate()
-        }
     }
 
     private fun sameMonth(a: Calendar, b: Calendar): Boolean {

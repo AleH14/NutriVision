@@ -178,7 +178,7 @@ class AnalisisActivity : AppCompatActivity() {
         tvAiDisclaimer?.apply {
             text = "Los valores nutricionales son estimaciones generadas por Inteligencia Artificial y no reemplazan la orientación de un profesional de la salud o nutricionista."
             visibility = View.VISIBLE
-            setTextColor(ContextCompat.getColor(this@AnalisisActivity, R.color.orange))
+            setTextColor(ContextCompat.getColor(this@AnalisisActivity, R.color.gris_claro))
         }
 
         layoutResultados?.visibility = View.VISIBLE

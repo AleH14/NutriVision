@@ -10,7 +10,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
 
     <application
@@ -24,11 +25,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.NutriVision"
         android:usesCleartextTraffic="true">
-
+        <activity
+            android:name=".CambiarPasswordActivity"
+            android:exported="false" />
         <activity
             android:name=".DatosInicialesActivity"
-            android:exported="false" />
-        <!-- LoginActivity como pantalla principal -->
+            android:exported="false" /> <!-- LoginActivity como pantalla principal -->
         <activity
             android:name=".LoginActivity"
             android:exported="true">
