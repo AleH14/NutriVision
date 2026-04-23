@@ -23,7 +23,8 @@
         android:networkSecurityConfig="@xml/network_security_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NutriVision">
+        android:theme="@style/Theme.NutriVision"
+        android:name=".NutriVisionApplication">
         <activity
             android:name=".CambiarPasswordActivity"
             android:exported="false" />
@@ -58,6 +59,7 @@
             android:name=".InicioActivity"
             android:exported="false" />
         <activity android:name=".CamaraActivity" />
+
     </application>
 
 </manifest>

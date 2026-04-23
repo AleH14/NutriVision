@@ -31,4 +31,16 @@ object DataCacheManager {
     fun clearCache(context: Context) {
         getPrefs(context).edit().clear().apply()
     }
+
+    // ========== para INICIOKT==========
+
+    // Limpiar una clave específica
+    fun clearCacheKey(context: Context, key: String) {
+        getPrefs(context).edit().remove(key).apply()
+    }
+
+    // Verificar si existe una clave en caché
+    fun containsKey(context: Context, key: String): Boolean {
+        return getPrefs(context).contains(key)
+    }
 }

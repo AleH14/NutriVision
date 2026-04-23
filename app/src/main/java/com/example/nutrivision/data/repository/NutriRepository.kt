@@ -16,8 +16,9 @@ class NutriRepository(private val apiService: ApiService) {
         return apiService.register(request)
     }
 
-    suspend fun getProfile(token: String, clientDate: String? = null): Response<User> {
-        return apiService.getProfile("Bearer $token", clientDate)
+    // UN SOLO método - la fecha es opcional
+    suspend fun getProfile(token: String, date: String? = null): Response<User> {
+        return apiService.getProfile("Bearer $token", date)
     }
 
     suspend fun updateProfile(token: String, request: UpdateUserRequest): Response<User> {
@@ -82,6 +83,10 @@ class NutriRepository(private val apiService: ApiService) {
             "newPassword" to newPassword
         )
         return apiService.changePassword("Bearer $token", request)
+    }
+
+    suspend fun resetDailySummary(token: String): Response<Map<String, Any>> {
+        return apiService.resetDailySummary("Bearer $token")
     }
 
 }

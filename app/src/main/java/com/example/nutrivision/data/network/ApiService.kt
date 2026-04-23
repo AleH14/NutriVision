@@ -14,10 +14,11 @@ interface ApiService {
     @POST("api/users/register")
     suspend fun register(@Body request: RegisterRequest): Response<AuthResponse>
 
+    // UN SOLO método - la fecha es opcional
     @GET("api/users/profile")
     suspend fun getProfile(
         @Header("Authorization") token: String,
-        @Header("X-Client-Date") clientDate: String? = null
+        @Query("date") date: String? = null  // ← Opcional!
     ): Response<User>
 
     @PUT("api/users/profile")
@@ -67,5 +68,10 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Body request: Map<String, String>
     ): Response<Map<String, String>>
+
+    @POST("api/users/reset-daily-summary")
+    suspend fun resetDailySummary(
+        @Header("Authorization") token: String
+    ): Response<Map<String, Any>>
 
 }

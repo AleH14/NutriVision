@@ -4,10 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import androidx.core.app.ActivityCompat
@@ -17,10 +18,10 @@ import com.example.nutrivision.data.model.User
 import com.example.nutrivision.data.network.RetrofitClient
 import com.example.nutrivision.data.repository.NutriRepository
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
@@ -30,14 +31,14 @@ class InicioActivity : AppCompatActivity() {
         private const val CAMERA_PERMISSION_CODE = 100
         private const val TAG = "InicioActivity"
         private const val CACHE_KEY = "user_profile_cache"
+        private const val FECHA_CACHE_KEY = "ultima_fecha_registrada"
     }
-    
+
     private var tvSaludo: TextView? = null
     private var tvMetaDiaria: TextView? = null
     private var tvProteinasHoy: TextView? = null
     private var tvCarbsHoy: TextView? = null
     private var tvGrasasHoy: TextView? = null
-    private var tvCaloriasHoy: TextView? = null
     private var tvCaloriasConsumidas: TextView? = null
     private var tvCaloriasMeta: TextView? = null
     private var tvPorcentaje: TextView? = null
@@ -46,35 +47,105 @@ class InicioActivity : AppCompatActivity() {
     private var progressProteinas: ProgressBar? = null
     private var progressCarbos: ProgressBar? = null
     private var progressGrasas: ProgressBar? = null
-    
+
     private lateinit var repository: NutriRepository
+
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var fechaCheckRunnable: Runnable
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_inicio)
         repository = NutriRepository(RetrofitClient.instance)
-        
+
         initViews()
         setupNavigation()
         setupCameraButton()
-        
-        cargarDesdeCache()
+
+        iniciarVerificacionFecha()
         cargarDatosInicio()
     }
 
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "onResume: Refrescando datos...")
-        cargarDatosInicio()
+        Log.d(TAG, "onResume: Verificando cambio de fecha...")
+        verificarYReiniciarSiFechaCambio()
+        cargarDatosInicio(forceRefresh = true)
     }
-    
+
+    override fun onPause() {
+        super.onPause()
+        guardarFechaActualEnPrefs()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacks(fechaCheckRunnable)
+    }
+
+    private fun iniciarVerificacionFecha() {
+        fechaCheckRunnable = object : Runnable {
+            override fun run() {
+                verificarYReiniciarSiFechaCambio()
+                handler.postDelayed(this, 60000) // Cada minuto
+            }
+        }
+        handler.postDelayed(fechaCheckRunnable, 1000)
+    }
+
+    private fun obtenerFechaActualLocal(): String {
+        val now = Calendar.getInstance()
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getDefault() }
+        return sdf.format(now.time)
+    }
+
+    private fun obtenerUltimaFechaRegistrada(): String {
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        return prefs.getString(FECHA_CACHE_KEY, "") ?: ""
+    }
+
+    private fun guardarFechaActualEnPrefs() {
+        val prefs = getSharedPreferences("app_prefs", MODE_PRIVATE)
+        prefs.edit().putString(FECHA_CACHE_KEY, obtenerFechaActualLocal()).apply()
+    }
+
+    private fun verificarYReiniciarSiFechaCambio() {
+        val fechaActual = obtenerFechaActualLocal()
+        val ultimaFecha = obtenerUltimaFechaRegistrada()
+
+        if (ultimaFecha.isNotEmpty() && ultimaFecha != fechaActual) {
+            Log.d(TAG, "🔥 ¡FECHA CAMBIADA! $ultimaFecha -> $fechaActual")
+            guardarFechaActualEnPrefs()
+
+            // ✅ FORZAR REINICIO EN EL BACKEND
+            lifecycleScope.launch {
+                try {
+                    val token = TokenManager.getToken(this@InicioActivity)
+                    if (token != null) {
+                        // Llamar a un endpoint específico para reiniciar
+                        val resetResponse = repository.resetDailySummary(token)
+                        if (resetResponse.isSuccessful) {
+                            Log.d(TAG, "✅ Resumen reiniciado en backend")
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error al reiniciar resumen", e)
+                }
+
+                delay(100)
+                cargarDatosInicio(forceRefresh = true)
+            }
+        } else if (ultimaFecha.isEmpty()) {
+            guardarFechaActualEnPrefs()
+        }
+    }
+
     private fun initViews() {
         tvSaludo = findViewById(R.id.tvSaludo)
         tvMetaDiaria = findViewById(R.id.tvMetaDiaria)
         tvProteinasHoy = findViewById(R.id.tvProteinasHoy)
         tvCarbsHoy = findViewById(R.id.tvCarbsHoy)
         tvGrasasHoy = findViewById(R.id.tvGrasasHoy)
-        tvCaloriasHoy = findViewById(R.id.tvCaloriasHoy)
         tvCaloriasConsumidas = findViewById(R.id.tv_calorias_consumidas)
         tvCaloriasMeta = findViewById(R.id.tv_calorias_meta)
         tvPorcentaje = findViewById(R.id.tv_porcentaje)
@@ -85,44 +156,67 @@ class InicioActivity : AppCompatActivity() {
         progressGrasas = findViewById(R.id.progress_grasas)
     }
 
-    private fun cargarDesdeCache() {
-        val cachedUser = DataCacheManager.getCache(this, CACHE_KEY, User::class.java)
-        cachedUser?.let {
-            Log.d(TAG, "Caché encontrada, renderizando...")
-            actualizarInterfaz(it)
-        }
-    }
-
-    private fun cargarDatosInicio() {
+    private fun cargarDatosInicio(forceRefresh: Boolean = false) {
         val token = TokenManager.getToken(this) ?: return irALogin()
         val nombreUsuario = TokenManager.getUserName(this)
         tvSaludo?.text = "¡Hola, $nombreUsuario!"
 
         lifecycleScope.launch {
             try {
-                // Generar fecha local exacta
-                val now = Calendar.getInstance()
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getDefault() }
-                val todayStr = sdf.format(now.time)
-                
-                Log.d(TAG, "Solicitando perfil para fecha: $todayStr")
-                val response = repository.getProfile(token, todayStr)
+                val fechaActual = obtenerFechaActualLocal()
+
+                Log.d(TAG, "Solicitando perfil para fecha: $fechaActual")
+
+                if (forceRefresh) {
+                    DataCacheManager.clearCache(this@InicioActivity)
+                }
+
+                val response = repository.getProfile(token, fechaActual)
 
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
-                    Log.d(TAG, "Datos recibidos. Resumen hoy: ${usuario.todayNutritionSummary}")
-                    
-                    DataCacheManager.saveCache(this@InicioActivity, CACHE_KEY, usuario)
+                    // El backend ya reinició si era necesario
                     actualizarInterfaz(usuario)
+                    DataCacheManager.saveCache(this@InicioActivity, CACHE_KEY, usuario)
                 } else {
                     Log.e(TAG, "Error en respuesta: ${response.code()}")
+                    val cachedUser = DataCacheManager.getCache(this@InicioActivity, CACHE_KEY, User::class.java)
+                    cachedUser?.let { mostrarValoresEnCeroConMetas(it) }
                 }
             } catch (error: Exception) {
-                // No mostrar error si es una cancelación por rotación
                 if (error !is kotlinx.coroutines.CancellationException) {
                     Log.e(TAG, "Error de red", error)
+                    val cachedUser = DataCacheManager.getCache(this@InicioActivity, CACHE_KEY, User::class.java)
+                    cachedUser?.let { mostrarValoresEnCeroConMetas(it) }
                 }
             }
+        }
+    }
+
+    private fun mostrarValoresEnCeroConMetas(usuario: User) {
+        runOnUiThread {
+            val metaCalorias = usuario.dailyCalorieGoalKcal.toInt()
+            val metaProteinas = usuario.dailyProteinGoalGrams
+            val metaCarbos = usuario.dailyCarbsGoalGrams
+            val metaGrasas = usuario.dailyFatGoalGrams
+
+            tvMetaDiaria?.text = "Meta Diaria: $metaCalorias kcal"
+            tvCaloriasConsumidas?.text = "0 /"
+            tvCaloriasMeta?.text = " $metaCalorias kcal"
+            tvPorcentaje?.text = "0%"
+            tvRestante?.text = "Te quedan $metaCalorias kcal para completar el día"
+            progressCalorias?.progress = 0
+
+            tvProteinasHoy?.text = "0 / $metaProteinas g"
+            tvCarbsHoy?.text = "0 / $metaCarbos g"
+            tvGrasasHoy?.text = "0 / $metaGrasas g"
+
+            progressProteinas?.max = metaProteinas
+            progressProteinas?.progress = 0
+            progressCarbos?.max = metaCarbos
+            progressCarbos?.progress = 0
+            progressGrasas?.max = metaGrasas
+            progressGrasas?.progress = 0
         }
     }
 
@@ -131,11 +225,11 @@ class InicioActivity : AppCompatActivity() {
         tvMetaDiaria?.text = "Meta Diaria: $metaCaloriasDiarias kcal"
 
         val resumen = usuario.todayNutritionSummary
-        if (resumen != null) {
+        if (resumen != null && resumen.date == obtenerFechaActualLocal()) {
             val p = resumen.proteinGramsConsumed
             val c = resumen.carbsGramsConsumed
             val g = resumen.fatGramsConsumed
-            
+
             val caloriasConsumidas = (p * 4 + c * 4 + g * 9).toInt()
             val porcentaje = if (metaCaloriasDiarias > 0) ((caloriasConsumidas.toFloat() / metaCaloriasDiarias) * 100).toInt() else 0
             val caloriasRestantes = (metaCaloriasDiarias - caloriasConsumidas).coerceAtLeast(0)
@@ -157,25 +251,10 @@ class InicioActivity : AppCompatActivity() {
             progressGrasas?.max = usuario.dailyFatGoalGrams
             progressGrasas?.progress = g.toInt()
         } else {
-            Log.d(TAG, "No hay resumen para hoy, reseteando a 0")
-            resetValores(metaCaloriasDiarias, usuario.dailyProteinGoalGrams, usuario.dailyCarbsGoalGrams, usuario.dailyFatGoalGrams)
+            mostrarValoresEnCeroConMetas(usuario)
         }
     }
 
-    private fun resetValores(kcal: Int, p: Int, c: Int, g: Int) {
-        tvCaloriasConsumidas?.text = "0 /"
-        tvCaloriasMeta?.text = " $kcal kcal"
-        tvPorcentaje?.text = "0%"
-        tvRestante?.text = "Te quedan $kcal kcal para completar el día"
-        progressCalorias?.progress = 0
-        tvProteinasHoy?.text = "0 / $p g"
-        tvCarbsHoy?.text = "0 / $c g"
-        tvGrasasHoy?.text = "0 / $g g"
-        progressProteinas?.progress = 0
-        progressCarbos?.progress = 0
-        progressGrasas?.progress = 0
-    }
-    
     private fun setupNavigation() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
         bottomNav.selectedItemId = R.id.nav_inicio
@@ -198,7 +277,7 @@ class InicioActivity : AppCompatActivity() {
             }
         }
     }
-    
+
     private fun setupCameraButton() {
         findViewById<CardView>(R.id.btn_camara).setOnClickListener {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {

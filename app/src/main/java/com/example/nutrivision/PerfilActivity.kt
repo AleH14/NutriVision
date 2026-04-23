@@ -80,10 +80,10 @@ class PerfilActivity : AppCompatActivity() {
         setupListeners()
         setupChipListeners()
         setupGeneroChips()
-        
+
         // 1. Cargar caché inmediatamente (0ms lag)
         cargarDesdeCache()
-        
+
         // 2. Refrescar desde el backend en segundo plano
         cargarDatosDelBackend()
     }
@@ -128,13 +128,15 @@ class PerfilActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = repository.getProfile(token)
+                // No pasar fecha, el backend usa la fecha actual
+                val response = repository.getProfile(token) // Sin fecha
+
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
-                    
+
                     // Actualizar caché
                     DataCacheManager.saveCache(this@PerfilActivity, CACHE_KEY, usuario)
-                    
+
                     renderizarUsuario(usuario)
                 }
             } catch (error: Exception) {
@@ -150,12 +152,12 @@ class PerfilActivity : AppCompatActivity() {
         editEdad.setText(usuario.age.toString())
         editAltura.setText(usuario.heightCm.toString())
         editPesoActual.setText(usuario.currentWeightLb.toString())
-        
+
         generoActual = usuario.gender
         actividadFisicaActual = usuario.physicalActivity
         objetivoActual = usuario.personalGoal
         dailyCalorieGoalKcal = usuario.dailyCalorieGoalKcal.toInt()
-        
+
         tvGenero.text = mapearGeneroAUI(generoActual)
         tvMetaDiariaKcal?.text = dailyCalorieGoalKcal.toString()
 
@@ -309,7 +311,17 @@ class PerfilActivity : AppCompatActivity() {
     }
 
     private fun guardarCambiosEnBackend(edad: Int, altura: Int, peso: Int) {
-        val token = TokenManager.getToken(this) ?: return
+        val token = TokenManager.getToken(this)
+
+        if (token.isNullOrEmpty()) {
+            mostrarToastError("Sesión expirada. Inicia sesión nuevamente.")
+            irALogin()
+            return
+        }
+
+        btnGuardarCambios.isEnabled = false
+        btnGuardarCambios.text = "Guardando..."
+
         lifecycleScope.launch {
             try {
                 val updateRequest = UpdateUserRequest(
@@ -320,7 +332,9 @@ class PerfilActivity : AppCompatActivity() {
                     physicalActivity = actividadFisicaActual,
                     personalGoal = objetivoActual
                 )
+
                 val response = repository.updateProfile(token, updateRequest)
+
                 if (response.isSuccessful && response.body() != null) {
                     val userUpdated = response.body()!!
                     DataCacheManager.saveCache(this@PerfilActivity, CACHE_KEY, userUpdated)
@@ -330,13 +344,29 @@ class PerfilActivity : AppCompatActivity() {
                 } else {
                     val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                     Log.e(TAG, "Error al actualizar perfil: ${response.code()} - $errorBody")
-                    mostrarToastError("Error al actualizar perfil")
+
+                    // Mensaje más amigable según el error
+                    val mensaje = when (response.code()) {
+                        401 -> "Sesión expirada. Inicia sesión nuevamente."
+                        404 -> "Usuario no encontrado. Inicia sesión de nuevo."
+                        else -> "Error al actualizar perfil"
+                    }
+                    mostrarToastError(mensaje)
+
+                    // Si el token es inválido, redirigir al login
+                    if (response.code() == 401 || response.code() == 404) {
+                        TokenManager.logout(this@PerfilActivity)
+                        irALogin()
+                    }
                 }
             } catch (error: Exception) {
                 if (error !is CancellationException) {
                     Log.e(TAG, "Excepción al actualizar perfil", error)
                     mostrarToastError("Error: ${error.message}")
                 }
+            } finally {
+                btnGuardarCambios.isEnabled = true
+                btnGuardarCambios.text = "Guardar Cambios"
             }
         }
     }
@@ -366,12 +396,60 @@ class PerfilActivity : AppCompatActivity() {
         finishAffinity()
     }
 
+    // Toast personalizado para éxito (verde)
+    @Suppress("DEPRECATION")
     private fun mostrarToastExito(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, R.color.success_green))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
     }
 
+    // Toast personalizado para error (rojo)
+    @Suppress("DEPRECATION")
     private fun mostrarToastError(mensaje: String) {
-        Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.holo_red_dark))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
     }
 
     private fun calcularMetaDiaria() {
@@ -385,10 +463,10 @@ class PerfilActivity : AppCompatActivity() {
                 if (response.isSuccessful && response.body() != null) {
                     val newGoal = response.body()!!.dailyCalorieGoalKcal ?: 0
                     tvMetaDiariaKcal?.text = newGoal.toString()
-                    
+
                     // Actualizar caché forzosamente tras el cálculo
-                    cargarDatosDelBackend() 
-                    
+                    cargarDatosDelBackend()
+
                     mostrarToastExito("Meta calculada: $newGoal kcal")
                 }
             } catch (error: Exception) {

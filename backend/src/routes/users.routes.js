@@ -169,14 +169,16 @@ router.post("/login", authLimiter, async (req, res, next) => {
   }
 });
 
-// GET /api/users/profile
+// GET /api/users/profile - UN SOLO ENDPOINT
 router.get("/profile", verifyToken, async (req, res, next) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
+    let user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // NO reiniciar el resumen aquí - solo en save-analysis cuando se guarda un plato
-    // Enviar el resumen como está en la base de datos
+    // El reinicio solo debe ocurrir en:
+    // 1. reset-daily-summary (cuando el usuario cambia fecha manualmente)
+    // 2. save-analysis (cuando se guarda una comida y la fecha es diferente)
+
     res.json(user);
   } catch (error) {
     next(error);
@@ -186,25 +188,40 @@ router.get("/profile", verifyToken, async (req, res, next) => {
 // PUT /api/users/profile - Actualizar perfil
 router.put("/profile", verifyToken, async (req, res, next) => {
   try {
-    const fields = ["age", "heightCm", "currentWeightLb", "gender", "physicalActivity", "personalGoal", "dailyCalorieGoalKcal", "dailyProteinGoalGrams", "dailyCarbsGoalGrams", "dailyFatGoalGrams"];
     const user = await User.findById(req.userId);
-    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+    if (!user) {
+      return res.status(404).json({ message: "Usuario no encontrado" });
+    }
 
-    fields.forEach(field => {
-      if (req.body[field] !== undefined) user[field] = req.body[field];
+    // Campos permitidos para actualizar
+    const allowedFields = ["age", "heightCm", "currentWeightLb", "gender", "physicalActivity", "personalGoal"];
+
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        user[field] = req.body[field];
+      }
     });
 
-    try {
-      await user.save();
-      res.json(user.toJSON ? user.toJSON() : user);
-    } catch (validationError) {
-      console.error("Error de validación al actualizar perfil:", validationError.message);
-      return res.status(400).json({ message: validationError.message || "Error de validación" });
-    }
+    await user.save();
+
+    // Devolver usuario sin password
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json(userResponse);
   } catch (error) {
     next(error);
   }
 });
+
+// Función auxiliar
+function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 // POST /api/users/calculate-daily-goal - IA para calorías y macros
 router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
@@ -282,15 +299,13 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     const Analysis = require("../models/analysis.model");
 
-    // Declarar clientDate primero (IMPORTANTE: antes de usarlo)
-    // date viene en formato YYYY-MM-DD desde el cliente (su zona horaria local)
-    const clientDate = date || new Date().toISOString().slice(0, 10);
+    // 🔥 IMPORTANTE: Usar la fecha enviada por el cliente o la actual
+    const clientDate = date || getLocalDateString();
     const clientTime = time || "";
 
-    // createdAt ahora viene como timestamp UNIX en milisegundos
-    // Esto evita problemas de interpretación de zona horaria
     const analysisDate = createdAt ? new Date(parseInt(createdAt)) : new Date();
 
+    // 1. Guardar el análisis
     const analysis = new Analysis({
       userId,
       imageName: imageFilename,
@@ -299,30 +314,49 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       notes: plateAnalysis,
       rawModelResponse: { mealType, plateAnalysis },
       createdAt: analysisDate,
-      localDate: clientDate, // Guardar la fecha local del cliente
-      localTime: clientTime  // Guardar la hora local del cliente
+      localDate: clientDate,
+      localTime: clientTime
     });
 
     await analysis.save();
+    console.log(`✅ Análisis guardado para fecha: ${clientDate}`);
 
+    // 2. Actualizar el resumen del usuario
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Verificar si es un nuevo día y reiniciar si es necesario
-    if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== clientDate) {
-      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${clientDate})`);
+    console.log(`📊 Resumen actual en BD:`, user.todayNutritionSummary);
+
+    // 🔥 Verificar si es un nuevo día
+    const fechaActual = getLocalDateString();
+    const fechaResumen = user.todayNutritionSummary?.date;
+
+    if (!user.todayNutritionSummary || fechaResumen !== clientDate) {
+      console.log(`🔄 Reiniciando resumen diario`);
+      console.log(`   Fecha BD: ${fechaResumen}`);
+      console.log(`   Fecha cliente: ${clientDate}`);
+      console.log(`   Fecha servidor: ${fechaActual}`);
+
       user.todayNutritionSummary = {
-        date: clientDate,
+        date: clientDate,  // ← Usar la fecha del cliente
         proteinGramsConsumed: 0,
         carbsGramsConsumed: 0,
         fatGramsConsumed: 0
       };
     }
 
-    // Sumar los nuevos valores
-    user.todayNutritionSummary.proteinGramsConsumed += nutrition.proteinGrams;
-    user.todayNutritionSummary.carbsGramsConsumed += nutrition.carbsGrams;
-    user.todayNutritionSummary.fatGramsConsumed += nutrition.fatGrams;
+    // 3. Sumar los nuevos valores
+    const proteinasAAgregar = nutrition.proteinGrams || 0;
+    const carbsAAgregar = nutrition.carbsGrams || 0;
+    const grasasAAgregar = nutrition.fatGrams || 0;
+
+    console.log(`➕ Sumando: P=${proteinasAAgregar}g, C=${carbsAAgregar}g, G=${grasasAAgregar}g`);
+
+    user.todayNutritionSummary.proteinGramsConsumed += proteinasAAgregar;
+    user.todayNutritionSummary.carbsGramsConsumed += carbsAAgregar;
+    user.todayNutritionSummary.fatGramsConsumed += grasasAAgregar;
+
+    console.log(`📊 Nuevo resumen:`, user.todayNutritionSummary);
 
     await user.save();
 
@@ -332,9 +366,19 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       analysisId: analysis._id
     });
   } catch (error) {
+    console.error("❌ Error en save-analysis:", error);
     next(error);
   }
 });
+
+// Asegúrate de que la función esté disponible
+function getLocalDateString() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
 // GET /api/users/analyses - Obtener análisis por fecha
 router.get("/analyses", verifyToken, async (req, res, next) => {
@@ -414,6 +458,36 @@ router.post("/change-password", authLimiter, verifyToken, async (req, res, next)
     await user.save();
 
     res.json({ message: "Contraseña actualizada exitosamente" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
+// POST /api/users/reset-daily-summary - Reiniciar resumen manualmente
+router.post("/reset-daily-summary", verifyToken, async (req, res, next) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    const hoy = getLocalDateString();
+
+    user.todayNutritionSummary = {
+      date: hoy,
+      proteinGramsConsumed: 0,
+      carbsGramsConsumed: 0,
+      fatGramsConsumed: 0
+    };
+
+    await user.save();
+
+    console.log(`🔄 Resumen reiniciado manualmente para usuario: ${user.email} (fecha: ${hoy})`);
+
+    res.json({
+      message: "Resumen diario reiniciado",
+      date: hoy,
+      summary: user.todayNutritionSummary
+    });
   } catch (error) {
     next(error);
   }

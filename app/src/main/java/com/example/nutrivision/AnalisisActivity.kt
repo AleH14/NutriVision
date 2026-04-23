@@ -8,7 +8,6 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -202,12 +201,9 @@ class AnalisisActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // Usar hora local del dispositivo (sin convertir a UTC)
                 val now = Calendar.getInstance()
                 val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now.time)
                 val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now.time)
-
-                // Enviar timestamp UNIX en milisegundos para referencia
                 val createdAtStr = now.timeInMillis.toString()
 
                 val response = repository.saveAnalysis(
@@ -216,18 +212,19 @@ class AnalisisActivity : AppCompatActivity() {
                 )
 
                 if (response.isSuccessful) {
-                    // Limpiar caché para forzar actualización de la UI en Inicio
-                    DataCacheManager.clearCache(this@AnalisisActivity)
-                    Toast.makeText(this@AnalisisActivity, "¡Plato guardado!", Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "✅ Análisis guardado exitosamente")
+
+                    // ✅ NO LIMPIAR CACHÉ, solo ir a InicioActivity
+                    // InicioActivity recargará los datos automáticamente en onResume()
 
                     val intent = Intent(this@AnalisisActivity, InicioActivity::class.java)
                     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
                     startActivity(intent)
                     finish()
                 } else {
+                    Log.e(TAG, "Error al guardar: ${response.code()}")
                     btnGuardarAnalisis?.isEnabled = true
                     btnGuardarAnalisis?.text = "Guardar"
-                    Toast.makeText(this@AnalisisActivity, "Error al guardar", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
                 btnGuardarAnalisis?.isEnabled = true
