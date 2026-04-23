@@ -9,111 +9,47 @@ const { calculateDailyCalorieGoal } = require("../services/openai.service");
 
 const router = express.Router();
 
-// Rate limiters para endpoints sensibles
+// Rate limiters
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 15 * 60 * 1000,
   max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Demasiados intentos. Espera 15 minutos antes de intentarlo de nuevo." }
+  message: { message: "Demasiados intentos. Espera 15 minutos." }
 });
 
-const analyzeImageLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minuto
-  max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { message: "Demasiadas solicitudes de análisis. Intenta de nuevo en un minuto." }
-});
-
-// Configurar multer para imágenes
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Solo se permiten archivos de imagen'));
-    }
-  }
+  limits: { fileSize: 5 * 1024 * 1024 },
 });
 
-// Middleware para manejar errores de multer
-const handleMulterError = (err, req, res, next) => {
-  if (err instanceof multer.MulterError) {
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: "Archivo muy grande (máximo 5MB)" });
-    }
-    return res.status(400).json({ message: "Error al procesar archivo: " + err.message });
-  } else if (err) {
-    return res.status(400).json({ message: err.message });
-  }
-  next();
-};
-
-// Middleware para verificar token JWT
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ message: "Token requerido" });
   }
-
   const token = authHeader.slice(7);
   try {
-    const decoded = jwt.verify(token, env.jwtSecret || "tu-secreto-super-seguro");
+    const decoded = jwt.verify(token, env.jwtSecret || "secreto");
     req.userId = decoded.userId;
     next();
   } catch (error) {
-    return res.status(401).json({ message: "Token inválido o expirado" });
+    return res.status(401).json({ message: "Token inválido" });
   }
 };
 
-// POST /api/users/register - Registrar nuevo usuario
+// ==================== REGISTER ====================
 router.post("/register", async (req, res, next) => {
   try {
-    const {
-      fullName, email, password, age, heightCm,
-      currentWeightLb, gender, physicalActivity, personalGoal
-    } = req.body;
+    const { fullName, email, password, age, heightCm, currentWeightLb, gender, physicalActivity, personalGoal } = req.body;
+    if (!fullName || !email || !password) return res.status(400).json({ message: "Datos incompletos" });
 
-    if (!fullName || !email || !password) {
-      return res.status(400).json({ message: "Datos incompletos" });
-    }
-
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(409).json({ message: "El email ya está registrado" });
-    }
+    const normalizedEmail = email.toLowerCase().trim();
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) return res.status(409).json({ message: "Email ya registrado" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Intentar calcular metas con IA al registrar
-    let aiGoals = {
-      dailyCalorieGoalKcal: 2000,
-      dailyProteinGoalGrams: 150,
-      dailyCarbsGoalGrams: 200,
-      dailyFatGoalGrams: 80
-    };
-
-    try {
-      console.log("Calculando metas iniciales con IA para nuevo registro...");
-      const result = await calculateDailyCalorieGoal({
-        age: age || 25,
-        heightCm: heightCm || 170,
-        currentWeightLb: currentWeightLb || 150,
-        gender: gender || "masculino",
-        physicalActivity: physicalActivity || "moderado",
-        personalGoal: personalGoal || "mantener peso",
-      });
-      aiGoals = result;
-    } catch (aiError) {
-      console.error("Error calculando metas en registro (usando valores por defecto):", aiError.message);
-    }
-
     const newUser = new User({
       fullName,
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       password: hashedPassword,
       age: age || 25,
       heightCm: heightCm || 170,
@@ -121,38 +57,38 @@ router.post("/register", async (req, res, next) => {
       gender: gender || "masculino",
       physicalActivity: physicalActivity || "moderado",
       personalGoal: personalGoal || "mantener peso",
-      dailyCalorieGoalKcal: aiGoals.dailyCalorieGoalKcal,
-      dailyProteinGoalGrams: aiGoals.dailyProteinGoalGrams,
-      dailyCarbsGoalGrams: aiGoals.dailyCarbsGoalGrams,
-      dailyFatGoalGrams: aiGoals.dailyFatGoalGrams
     });
+
+    // Calcular metas con IA
+    try {
+      const result = await calculateDailyCalorieGoal({
+        age: newUser.age,
+        heightCm: newUser.heightCm,
+        currentWeightLb: newUser.currentWeightLb,
+        gender: newUser.gender,
+        physicalActivity: newUser.physicalActivity,
+        personalGoal: newUser.personalGoal,
+      });
+      newUser.dailyCalorieGoalKcal = result.dailyCalorieGoalKcal;
+      newUser.dailyProteinGoalGrams = result.dailyProteinGoalGrams;
+      newUser.dailyCarbsGoalGrams = result.dailyCarbsGoalGrams;
+      newUser.dailyFatGoalGrams = result.dailyFatGoalGrams;
+    } catch (err) {
+      console.error("Error calculando metas, usando defaults", err);
+    }
 
     await newUser.save();
-
     const token = jwt.sign({ userId: newUser._id }, env.jwtSecret, { expiresIn: "30d" });
-
-    res.status(201).json({
-      message: "Usuario registrado",
-      token,
-      user: { id: newUser._id, fullName: newUser.fullName, email: newUser.email }
-    });
-  } catch (error) {
-    next(error);
-  }
+    res.status(201).json({ token, user: { id: newUser._id, fullName: newUser.fullName, email: newUser.email } });
+  } catch (error) { next(error); }
 });
 
-// POST /api/users/login
+// ==================== LOGIN ====================
 router.post("/login", authLimiter, async (req, res, next) => {
   try {
     const { email, password } = req.body;
-
-    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
-    if (!normalizedEmail) {
-      return res.status(400).json({ message: "El correo electrónico es requerido" });
-    }
-    if (!password || typeof password !== "string" || !password.trim()) {
-      return res.status(400).json({ message: "La contraseña es requerida" });
-    }
+    const normalizedEmail = email?.toLowerCase().trim();
+    if (!normalizedEmail) return res.status(400).json({ message: "Email requerido" });
 
     const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await bcrypt.compare(password, user.password))) {
@@ -160,67 +96,50 @@ router.post("/login", authLimiter, async (req, res, next) => {
     }
 
     const token = jwt.sign({ userId: user._id }, env.jwtSecret, { expiresIn: "30d" });
-    res.json({
-      token,
-      user: { id: user._id, fullName: user.fullName, email: user.email }
-    });
-  } catch (error) {
-    next(error);
-  }
+    res.json({ token, user: { id: user._id, fullName: user.fullName, email: user.email } });
+  } catch (error) { next(error); }
 });
 
-// GET /api/users/profile
+// ==================== PROFILE (con reinicio diario según fecha local) ====================
 router.get("/profile", verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Recibir la fecha del cliente (Android) desde el header o query
-    // El cliente enviará la fecha actual de su dispositivo
-    const clientDate = req.headers['x-client-date'] || new Date().toISOString().slice(0, 10);
-
-    // Verificar y reiniciar según la fecha del cliente
-    if (user.todayNutritionSummary && user.todayNutritionSummary.date !== clientDate) {
-      user.todayNutritionSummary = {
-        date: clientDate,
-        proteinGramsConsumed: 0,
-        carbsGramsConsumed: 0,
-        fatGramsConsumed: 0
-      };
-
-      await user.save();
+    const clientDate = req.headers['x-client-date']; // formato YYYY-MM-DD
+    if (clientDate) {
+      if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== clientDate) {
+        console.log(`🔄 Reiniciando resumen diario para fecha local: ${clientDate}`);
+        user.todayNutritionSummary = {
+          date: clientDate,
+          proteinGramsConsumed: 0,
+          carbsGramsConsumed: 0,
+          fatGramsConsumed: 0,
+        };
+        await user.save();
+      }
     }
-
     res.json(user);
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
-// PUT /api/users/profile - Actualizar perfil
+// ==================== UPDATE PROFILE ====================
 router.put("/profile", verifyToken, async (req, res, next) => {
   try {
     const fields = ["age", "heightCm", "currentWeightLb", "gender", "physicalActivity", "personalGoal", "dailyCalorieGoalKcal", "dailyProteinGoalGrams", "dailyCarbsGoalGrams", "dailyFatGoalGrams"];
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-
-    fields.forEach(field => {
-      if (req.body[field] !== undefined) user[field] = req.body[field];
-    });
-
+    fields.forEach(field => { if (req.body[field] !== undefined) user[field] = req.body[field]; });
     await user.save();
     res.json({ message: "Perfil actualizado", user });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
-// POST /api/users/calculate-daily-goal - IA para calorías y macros
+// ==================== CALCULATE DAILY GOAL (IA) ====================
 router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
   try {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
-
     const result = await calculateDailyCalorieGoal({
       age: user.age,
       heightCm: user.heightCm,
@@ -229,201 +148,148 @@ router.post("/calculate-daily-goal", verifyToken, async (req, res, next) => {
       physicalActivity: user.physicalActivity,
       personalGoal: user.personalGoal,
     });
-
-    // Guardar TODO en la base de datos
     user.dailyCalorieGoalKcal = result.dailyCalorieGoalKcal;
     user.dailyProteinGoalGrams = result.dailyProteinGoalGrams;
     user.dailyCarbsGoalGrams = result.dailyCarbsGoalGrams;
     user.dailyFatGoalGrams = result.dailyFatGoalGrams;
-
     await user.save();
-
-    res.json({
-      message: "Metas calculadas por IA exitosamente",
-      dailyCalorieGoalKcal: user.dailyCalorieGoalKcal,
-      dailyProteinGoalGrams: user.dailyProteinGoalGrams,
-      dailyCarbsGoalGrams: user.dailyCarbsGoalGrams,
-      dailyFatGoalGrams: user.dailyFatGoalGrams,
-      rationale: result.rationale
-    });
-  } catch (error) {
-    next(error);
-  }
+    res.json(result);
+  } catch (error) { next(error); }
 });
 
-// POST /api/users/analyze-food-image
-router.post("/analyze-food-image", verifyToken, analyzeImageLimiter, upload.single('image'), handleMulterError, async (req, res, next) => {
+// ==================== ANALYZE FOOD IMAGE ====================
+router.post("/analyze-food-image", verifyToken, upload.single('image'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ message: "Imagen requerida" });
-
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     const { analyzeFoodImageBuffer } = require("../services/openai.service");
-
-    // Formatear hora a HH:mm para el prompt
-    const now = new Date();
-    const rawTime = req.body.photoTakenTime;
-    const photoTakenTime = (typeof rawTime === "string" && /^\d{2}:\d{2}/.test(rawTime.trim()))
-      ? rawTime.trim().slice(0, 5)
-      : `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-
+    const photoTakenTime = req.body.photoTakenTime || new Date().toLocaleTimeString();
     const result = await analyzeFoodImageBuffer(req.file.buffer, req.file.mimetype, {
       photoTakenTime,
-      userProfile: user
+      userProfile: user,
     });
-
-    if (!result.isFood) {
-      return res.status(422).json({ isFood: false, message: result.message });
-    }
-
+    if (!result.isFood) return res.status(422).json({ isFood: false, message: result.message });
     res.json({ isFood: true, analysis: result.parsed });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
-// POST /api/users/save-analysis
+// ==================== SAVE ANALYSIS (con fecha y hora local) ====================
 router.post("/save-analysis", verifyToken, async (req, res, next) => {
   try {
     const { imageFilename, dishes, nutrition, plateAnalysis, mealType, createdAt, date } = req.body;
     const userId = req.userId;
 
     const Analysis = require("../models/analysis.model");
+    const ConsumedDish = require("../models/consumed-dish.model");
 
-    // Guardar análisis
-    // Usar new Date(createdAt) para respetar la zona horaria del cliente (ISO 8601 con offset)
-    const analysisDate = createdAt ? new Date(createdAt) : new Date();
+    const localDateTime = createdAt; // ej: "2026-04-22T23:34:37.000-03:00"
+    const hoy = date;                // ej: "2026-04-22"
 
+    // Extraer hora para ConsumedDish
+    let dishTime = "12:00";
+    if (localDateTime) {
+      const match = localDateTime.match(/T(\d{2}:\d{2})/);
+      if (match) dishTime = match[1];
+    }
+
+    // Guardar en Analysis
     const analysis = new Analysis({
       userId,
       imageName: imageFilename,
       foodsDetected: dishes,
-      nutrition: nutrition,
+      nutrition,
       notes: plateAnalysis,
       rawModelResponse: { mealType, plateAnalysis },
-      createdAt: analysisDate
+      date: hoy,
+      localCreatedAt: localDateTime,
     });
-
     await analysis.save();
 
-    // Obtener fecha actual LOCAL
-    const hoy = new Date().toISOString().slice(0, 10);
+    // Guardar en ConsumedDish (opcional)
+    const consumedDish = new ConsumedDish({
+      userId,
+      dishDate: hoy,
+      dishTime,
+      calories: nutrition.calories,
+      mealType: mealType || "comida",
+      plateAnalysis: plateAnalysis || "",
+      carbsGrams: nutrition.carbsGrams,
+      proteinGrams: nutrition.proteinGrams,
+      fatGrams: nutrition.fatGrams,
+    });
+    await consumedDish.save();
+
+    // Actualizar resumen diario del usuario
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Verificar si es un nuevo día y reiniciar si es necesario
     if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== hoy) {
-      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${hoy})`);
       user.todayNutritionSummary = {
         date: hoy,
         proteinGramsConsumed: 0,
         carbsGramsConsumed: 0,
-        fatGramsConsumed: 0
+        fatGramsConsumed: 0,
       };
     }
-
-    // Sumar los nuevos valores
     user.todayNutritionSummary.proteinGramsConsumed += nutrition.proteinGrams;
     user.todayNutritionSummary.carbsGramsConsumed += nutrition.carbsGrams;
     user.todayNutritionSummary.fatGramsConsumed += nutrition.fatGrams;
-
     await user.save();
 
     res.json({
-      message: "Progreso guardado",
+      message: "Guardado con fecha local",
       summary: user.todayNutritionSummary,
-      analysisId: analysis._id
+      analysisId: analysis._id,
     });
-  } catch (error) {
-    next(error);
-  }
+  } catch (error) { next(error); }
 });
 
-// GET /api/users/analyses - Obtener análisis por fecha
+// ==================== GET ANALYSES BY DATE (devuelve localCreatedAt como createdAt) ====================
 router.get("/analyses", verifyToken, async (req, res, next) => {
   try {
     const { date } = req.query;
     const userId = req.userId;
-
     const Analysis = require("../models/analysis.model");
 
     let query = { userId };
-
     if (date) {
-      // Validar formato de fecha YYYY-MM-DD
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return res.status(400).json({ message: "Formato de fecha inválido, se espera YYYY-MM-DD" });
+        return res.status(400).json({ message: "Formato de fecha inválido, use YYYY-MM-DD" });
       }
-
-      // Construir el rango de un día completo en UTC a partir del string de fecha
-      const startDate = new Date(`${date}T00:00:00.000Z`);
-      const endDate = new Date(`${date}T23:59:59.999Z`);
-
-      query.createdAt = { $gte: startDate, $lte: endDate };
-
-      console.log(`Buscando análisis para fecha: ${date}`);
-      console.log(`Rango UTC: ${startDate.toISOString()} - ${endDate.toISOString()}`);
+      query.date = date;
+      console.log(`🔍 Buscando análisis para fecha local: ${date}`);
     }
 
-    const analyses = await Analysis.find(query).sort({ createdAt: -1 });
-
-    const formattedAnalyses = analyses.map(analysis => ({
-      _id: analysis._id,
-      imageName: analysis.imageName,
-      foodsDetected: analysis.foodsDetected,
-      nutrition: analysis.nutrition,
-      rawModelResponse: analysis.rawModelResponse,
-      createdAt: analysis.createdAt
+    const analyses = await Analysis.find(query).sort({ localCreatedAt: -1 });
+    // Mapear para que el campo createdAt sea el local (con offset)
+    const data = analyses.map(a => ({
+      ...a.toObject(),
+      createdAt: a.localCreatedAt,
     }));
 
-    res.json({
-      count: formattedAnalyses.length,
-      data: formattedAnalyses
-    });
-  } catch (error) {
-    next(error);
-  }
+    res.json({ count: data.length, data });
+  } catch (error) { next(error); }
 });
 
-// POST /api/users/change-password - Cambiar contraseña (requiere sesión activa)
+// ==================== CHANGE PASSWORD ====================
 router.post("/change-password", authLimiter, verifyToken, async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: "Ambas contraseñas son requeridas" });
+    if (newPassword.length < 6) return res.status(400).json({ message: "La nueva contraseña debe tener al menos 6 caracteres" });
 
-    // Validaciones
-    if (!currentPassword) {
-      return res.status(400).json({ message: "La contraseña actual es requerida" });
-    }
-
-    if (!newPassword) {
-      return res.status(400).json({ message: "La nueva contraseña es requerida" });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres" });
-    }
-
-    // Buscar usuario autenticado
     const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ message: "Usuario no encontrado" });
-    }
+    if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Verificar contraseña actual
-    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
-    if (!isCurrentPasswordValid) {
-      return res.status(401).json({ message: "La contraseña actual es incorrecta" });
-    }
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) return res.status(401).json({ message: "Contraseña actual incorrecta" });
 
-    // Hashear y guardar nueva contraseña
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
-
-    res.json({ message: "Contraseña actualizada exitosamente" });
-  } catch (error) {
-    next(error);
-  }
+    res.json({ message: "Contraseña actualizada" });
+  } catch (error) { next(error); }
 });
 
 module.exports = router;

@@ -2,7 +2,6 @@ package com.example.nutrivision
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -28,7 +27,6 @@ import java.util.TimeZone
 
 class AnalisisActivity : AppCompatActivity() {
 
-    private val TAG = "AnalisisActivity"
     private lateinit var repository: NutriRepository
 
     // UI Elements
@@ -79,14 +77,13 @@ class AnalisisActivity : AppCompatActivity() {
         btnGuardarAnalisis?.setOnClickListener { guardarAnalisis() }
         findViewById<TextView>(R.id.btnBackAnalisis)?.setOnClickListener { cancelar() }
 
-        // Ocultar botón guardar inicialmente
         btnGuardarAnalisis?.visibility = View.GONE
+        layoutResultados?.visibility = View.GONE
     }
 
     private fun obtenerDatos() {
         val imagePath = intent.getStringExtra("imageFile") ?: ""
         imageFile = File(imagePath)
-        Log.d(TAG, "Archivo recibido: $imagePath")
     }
 
     private fun cargarFoto() {
@@ -94,25 +91,21 @@ class AnalisisActivity : AppCompatActivity() {
             try {
                 val bitmap = ImageUtils.loadRotatedCircleBitmap(imageFile)
                 ivFoto?.setImageBitmap(bitmap)
-                Log.d(TAG, "Foto cargada y recortada en círculo")
             } catch (e: Exception) {
-                Log.e(TAG, "Error al procesar foto", e)
+                // Ignorar
             }
-        } else {
-            Log.e(TAG, "Archivo de foto no existe")
         }
     }
 
     private fun realizarAnalisis() {
         val token = TokenManager.getToken(this)
         if (token == null) {
-            mostrarErrorValidacion("Token no encontrado")
+            irALogin()
             return
         }
 
         lifecycleScope.launch {
             try {
-                Log.d(TAG, "Iniciando análisis...")
                 progressBarLoading?.visibility = View.VISIBLE
                 layoutResultados?.visibility = View.GONE
                 btnGuardarAnalisis?.visibility = View.GONE
@@ -125,32 +118,57 @@ class AnalisisActivity : AppCompatActivity() {
 
                 if (response.isSuccessful && response.body() != null) {
                     val result = response.body()!!
-                    Log.d(TAG, "Respuesta recibida: isFood=${result.isFood}, analysis=${result.analysis != null}")
-
-                    // Verificar si la imagen es comida
                     if (!result.isFood || result.analysis == null) {
-                        // No es comida
-                        val mensaje = result.message ?: "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida."
-                        mostrarErrorValidacion(mensaje)
+                        mostrarUICuandoNoComida()
+                        isFoodValid = false
+                        currentAnalysisResult = null
                     } else {
-                        // Es comida válida
                         isFoodValid = true
                         mostrarResultados(result)
                         btnGuardarAnalisis?.visibility = View.VISIBLE
                         btnGuardarAnalisis?.isEnabled = true
                     }
                 } else {
-                    val errorBody = response.errorBody()?.string() ?: "Sin detalles"
-                    Log.e(TAG, "Error: ${response.code()} - $errorBody")
-                    mostrarErrorValidacion("Error al analizar: ${response.code()}")
+                    // Si es código 422 (no comida) u otro error, mostramos la misma UI amigable
+                    mostrarUICuandoNoComida()
+                    isFoodValid = false
+                    currentAnalysisResult = null
                 }
             } catch (error: Exception) {
-                Log.e(TAG, "Excepción", error)
-                mostrarErrorValidacion("Error: ${error.message}")
+                mostrarUICuandoNoComida()
+                isFoodValid = false
+                currentAnalysisResult = null
             } finally {
                 progressBarLoading?.visibility = View.GONE
             }
         }
+    }
+
+    private fun mostrarUICuandoNoComida() {
+        // Título en naranja
+        tvTituloPrincipal?.text = "No se pudo validar la imagen"
+        tvTituloPrincipal?.setTextColor(ContextCompat.getColor(this, R.color.orange))
+
+        // Mensaje descriptivo en gris
+        tvAnalisisPlato?.text = "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida."
+        tvAnalisisPlato?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
+
+        // Valores nutricionales en "--"
+        tvCaloriasInfo?.text = "-- kcal"
+        tvProteinaInfo?.text = "-- g"
+        tvCarbsInfo?.text = "-- g"
+        tvGrasasInfo?.text = "-- g"
+
+        tvCaloriasInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
+        tvProteinaInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
+        tvCarbsInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
+        tvGrasasInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
+
+        // Ocultar disclaimer de IA
+        tvAiDisclaimer?.visibility = View.GONE
+
+        // Mostrar layout
+        layoutResultados?.visibility = View.VISIBLE
     }
 
     private fun mostrarResultados(analysisResult: FoodAnalysisResponse) {
@@ -166,7 +184,6 @@ class AnalisisActivity : AppCompatActivity() {
         tvCarbsInfo?.text = "${analysis.nutrition.carbsGrams.toInt()} g"
         tvGrasasInfo?.text = "${analysis.nutrition.fatGrams.toInt()} g"
 
-        // Restaurar colores normales
         tvTituloPrincipal?.setTextColor(ContextCompat.getColor(this, R.color.black))
         tvAnalisisPlato?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
         tvCaloriasInfo?.setTextColor(ContextCompat.getColor(this, R.color.black))
@@ -174,7 +191,6 @@ class AnalisisActivity : AppCompatActivity() {
         tvCarbsInfo?.setTextColor(ContextCompat.getColor(this, R.color.black))
         tvGrasasInfo?.setTextColor(ContextCompat.getColor(this, R.color.black))
 
-        // Aviso IA
         tvAiDisclaimer?.apply {
             text = "Los valores nutricionales son estimaciones generadas por Inteligencia Artificial y no reemplazan la orientación de un profesional de la salud o nutricionista."
             visibility = View.VISIBLE
@@ -182,47 +198,6 @@ class AnalisisActivity : AppCompatActivity() {
         }
 
         layoutResultados?.visibility = View.VISIBLE
-        Log.d(TAG, "Resultados mostrados: ${analysis.nutrition.calories} kcal")
-    }
-
-    private fun mostrarErrorValidacion(mensaje: String) {
-        isFoodValid = false
-        currentAnalysisResult = null
-
-        // Ocultar botón guardar
-        btnGuardarAnalisis?.visibility = View.GONE
-
-        // Mostrar solo el mensaje de error y la foto
-        tvTituloPrincipal?.text = "No se pudo validar la imagen"
-        tvTituloPrincipal?.setTextColor(ContextCompat.getColor(this, R.color.orange))
-
-        tvAnalisisPlato?.text = mensaje
-        tvAnalisisPlato?.setTextColor(ContextCompat.getColor(this, R.color.black))
-
-        // Ocultar/Oscurecer los datos nutricionales
-        tvCaloriasInfo?.text = "-- kcal"
-        tvProteinaInfo?.text = "-- g"
-        tvCarbsInfo?.text = "-- g"
-        tvGrasasInfo?.text = "-- g"
-
-        tvCaloriasInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
-        tvProteinaInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
-        tvCarbsInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
-        tvGrasasInfo?.setTextColor(ContextCompat.getColor(this, R.color.gris_claro))
-
-        // Ocultar aviso IA
-        tvAiDisclaimer?.visibility = View.GONE
-
-        layoutResultados?.visibility = View.VISIBLE
-        Log.e(TAG, mensaje)
-    }
-
-    private fun mostrarError(mensaje: String) {
-        Log.e(TAG, mensaje)
-        tvTituloPrincipal?.text = "Error al analizar"
-        tvAnalisisPlato?.text = mensaje
-        layoutResultados?.visibility = View.VISIBLE
-        btnGuardarAnalisis?.visibility = View.GONE
     }
 
     private fun setupNavigation() {
@@ -252,19 +227,11 @@ class AnalisisActivity : AppCompatActivity() {
     }
 
     private fun guardarAnalisis() {
-        if (!isFoodValid) {
-            Log.e(TAG, "No se puede guardar: la imagen no es comida válida")
-            return
-        }
-
-        if (currentAnalysisResult == null) {
-            Log.e(TAG, "No hay análisis para guardar")
-            return
-        }
+        if (!isFoodValid || currentAnalysisResult == null) return
 
         val token = TokenManager.getToken(this)
         if (token == null) {
-            Log.e(TAG, "Sesión expirada")
+            irALogin()
             return
         }
 
@@ -273,24 +240,17 @@ class AnalisisActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                Log.d(TAG, "Guardando análisis...")
-
                 val analysis = currentAnalysisResult!!.analysis ?: return@launch
-
                 val imageFilename = imageFile.name
 
                 val now = Calendar.getInstance()
-                val localDateTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                val localDateTime = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.US).apply {
                     timeZone = TimeZone.getDefault()
                 }.format(now.time)
 
                 val localDate = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
                     timeZone = TimeZone.getDefault()
                 }.format(now.time)
-
-                Log.d(TAG, "📅 Fecha local para guardar: $localDateTime")
-                Log.d(TAG, "📅 Fecha (solo día): $localDate")
-                Log.d(TAG, "📷 Nombre de imagen: $imageFilename")
 
                 val response = repository.saveAnalysis(
                     token = token,
@@ -304,17 +264,13 @@ class AnalisisActivity : AppCompatActivity() {
                 )
 
                 if (response.isSuccessful) {
-                    Log.d(TAG, "✅ Análisis guardado exitosamente")
                     startActivity(Intent(this@AnalisisActivity, InicioActivity::class.java))
                     finish()
                 } else {
-                    val errorBody = response.errorBody()?.string() ?: "Sin detalles"
-                    Log.e(TAG, "❌ Error al guardar: ${response.code()} - $errorBody")
                     btnGuardarAnalisis?.isEnabled = true
                     btnGuardarAnalisis?.text = "Guardar"
                 }
             } catch (error: Exception) {
-                Log.e(TAG, "❌ Error al guardar", error)
                 btnGuardarAnalisis?.isEnabled = true
                 btnGuardarAnalisis?.text = "Guardar"
             }
@@ -327,5 +283,10 @@ class AnalisisActivity : AppCompatActivity() {
         }
         startActivity(Intent(this, InicioActivity::class.java))
         finish()
+    }
+
+    private fun irALogin() {
+        startActivity(Intent(this, LoginActivity::class.java))
+        finishAffinity()
     }
 }

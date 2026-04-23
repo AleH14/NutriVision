@@ -21,6 +21,7 @@ import kotlin.math.round
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 
 class InicioActivity : AppCompatActivity() {
 
@@ -113,8 +114,12 @@ class InicioActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                // Obtener fecha actual del dispositivo
-                val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+                // Obtener fecha actual del dispositivo en formato local YYYY-MM-DD
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+                    timeZone = TimeZone.getDefault()
+                }.format(Date())
+
+                Log.d(TAG, "📅 Cargando datos para fecha local: $today")
 
                 val response = repository.getProfile(token, today)
 

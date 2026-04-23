@@ -18,6 +18,10 @@ import com.example.nutrivision.data.repository.NutriRepository
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 class PerfilActivity : AppCompatActivity() {
 
@@ -119,7 +123,12 @@ class PerfilActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val response = repository.getProfile(token)
+                // Obtener fecha actual del dispositivo en formato local YYYY-MM-DD
+                val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+                    timeZone = TimeZone.getDefault()
+                }.format(Date())
+
+                val response = repository.getProfile(token, today)
                 if (response.isSuccessful && response.body() != null) {
                     val usuario = response.body()!!
                     nombreUsuario = usuario.fullName

@@ -10,7 +10,6 @@ import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.nutrivision.data.network.RetrofitClient
@@ -21,7 +20,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.min
 
 class HistorialActivity : AppCompatActivity() {
 
@@ -33,25 +31,19 @@ class HistorialActivity : AppCompatActivity() {
     )
 
     private lateinit var bottomNav: BottomNavigationView
-    private lateinit var btnBack: TextView
-    private lateinit var btnMonth: TextView
-    private lateinit var btnYear: TextView
     private lateinit var tvSelectedDate: TextView
     private lateinit var calendarRowsContainer: LinearLayout
     private lateinit var mealContainer: LinearLayout
+    private lateinit var btnMonth: TextView
+    private lateinit var btnYear: TextView
 
     private val esLocale = Locale("es", "ES")
-    private val monthLabels = arrayOf(
-        "Ene", "Feb", "Mar", "Abr", "May", "Jun",
-        "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"
-    )
-
+    private val monthLabels = arrayOf("Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic")
     private val dateKeyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     private val selectedDateFormat = SimpleDateFormat("d 'de' MMMM", esLocale)
 
     private lateinit var visibleMonth: Calendar
     private lateinit var selectedDate: Calendar
-
     private val mealsByDate = mutableMapOf<String, List<MealEntry>>()
     private lateinit var repository: NutriRepository
     private val TAG = "HistorialActivity"
@@ -61,524 +53,336 @@ class HistorialActivity : AppCompatActivity() {
         setContentView(R.layout.activity_historial)
 
         repository = NutriRepository(RetrofitClient.instance)
-
+        initViews()
         initCalendars()
-        bindViews()
         setupNavigation()
         setupActions()
         renderScreen()
-
-        // Cargar automáticamente análisis de HOY
         cargarAnalisisDelDia(selectedDate)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::selectedDate.isInitialized) {
+            cargarAnalisisDelDia(selectedDate)
+        }
+    }
+
+    private fun initViews() {
+        bottomNav = findViewById(R.id.bottomNavigation)
+        tvSelectedDate = findViewById(R.id.tvSelectedDate)
+        calendarRowsContainer = findViewById(R.id.calendarRowsContainer)
+        mealContainer = findViewById(R.id.mealContainer)
+        btnMonth = findViewById(R.id.btnMonth)
+        btnYear = findViewById(R.id.btnYear)
+        findViewById<View>(R.id.btnBackHistorial).setOnClickListener { finish() }
     }
 
     private fun initCalendars() {
         visibleMonth = Calendar.getInstance().apply {
-            normalizeToDate()
             set(Calendar.DAY_OF_MONTH, 1)
+            normalize()
         }
-        selectedDate = Calendar.getInstance().apply {
-            normalizeToDate()
-        }
-    }
-
-    private fun bindViews() {
-        bottomNav = findViewById(R.id.bottomNavigation)
-        btnBack = findViewById(R.id.btnBackHistorial)
-        btnMonth = findViewById(R.id.btnMonth)
-        btnYear = findViewById(R.id.btnYear)
-        tvSelectedDate = findViewById(R.id.tvSelectedDate)
-        calendarRowsContainer = findViewById(R.id.calendarRowsContainer)
-        mealContainer = findViewById(R.id.mealContainer)
+        selectedDate = Calendar.getInstance().apply { normalize() }
     }
 
     private fun setupNavigation() {
         bottomNav.selectedItemId = R.id.nav_historial
-
         bottomNav.setOnItemSelectedListener {
             when (it.itemId) {
                 R.id.nav_inicio -> {
                     startActivity(Intent(this, InicioActivity::class.java))
-                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }
-
-                R.id.nav_historial -> true
-
                 R.id.nav_perfil -> {
                     startActivity(Intent(this, PerfilActivity::class.java))
-                    overridePendingTransition(0, 0)
                     finish()
                     true
                 }
-
-                else -> false
+                else -> true
             }
         }
     }
 
     private fun setupActions() {
-        btnBack.setOnClickListener {
-            finish()
-        }
-
-        btnMonth.setOnClickListener {
-            showMonthPicker()
-        }
-
-        btnYear.setOnClickListener {
-            showYearPicker()
-        }
+        btnMonth.setOnClickListener { showMonthPicker() }
+        btnYear.setOnClickListener { showYearPicker() }
     }
 
     private fun renderScreen() {
         btnMonth.text = monthLabels[visibleMonth.get(Calendar.MONTH)]
         btnYear.text = visibleMonth.get(Calendar.YEAR).toString()
-        tvSelectedDate.text = capitalizeFirst(selectedDateFormat.format(selectedDate.time))
-
+        tvSelectedDate.text = selectedDateFormat.format(selectedDate.time).replaceFirstChar { it.uppercase() }
         renderCalendar()
         renderMealsForSelectedDate()
     }
 
     private fun renderCalendar() {
         calendarRowsContainer.removeAllViews()
+        val cal = (visibleMonth.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1) }
+        val offset = if (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) 0 else cal.get(Calendar.DAY_OF_WEEK) - 1
+        cal.add(Calendar.DAY_OF_MONTH, -offset)
 
-        val firstOfMonth = cloneCalendar(visibleMonth).apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        val firstDayOfWeek = firstOfMonth.get(Calendar.DAY_OF_WEEK)
-        val offset = if (firstDayOfWeek == Calendar.SUNDAY) 0 else firstDayOfWeek - Calendar.SUNDAY
-
-        val gridStart = cloneCalendar(firstOfMonth).apply {
-            add(Calendar.DAY_OF_MONTH, -offset)
-        }
-
-        repeat(6) { rowIndex ->
-            val row = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                )
+        repeat(6) {
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            repeat(7) {
+                row.addView(createDayCell(cal.clone() as Calendar))
+                cal.add(Calendar.DAY_OF_MONTH, 1)
             }
-
-            repeat(7) { colIndex ->
-                val index = rowIndex * 7 + colIndex
-                val cellDate = cloneCalendar(gridStart).apply {
-                    add(Calendar.DAY_OF_MONTH, index)
-                }
-                row.addView(createDayCell(cellDate))
-            }
-
             calendarRowsContainer.addView(row)
         }
     }
 
-    private fun createDayCell(date: Calendar): TextView {
-        val inVisibleMonth = sameMonth(date, visibleMonth)
-        val isToday = sameDate(date, Calendar.getInstance())
+    private fun createDayCell(date: Calendar): View {
         val isSelected = sameDate(date, selectedDate)
-        val hasRecords = mealsByDate.containsKey(dateKey(date))
+        val inMonth = sameMonth(date, visibleMonth)
+        val dateKey = dateKeyFormat.format(date.time)
+        val hasData = mealsByDate.containsKey(dateKey) && !mealsByDate[dateKey].isNullOrEmpty()
 
         return TextView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, dp(44)).apply {
-                weight = 1f
-                setMargins(dp(2), dp(2), dp(2), dp(2))
-            }
-
+            layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f).apply { setMargins(dp(2), dp(2), dp(2), dp(2)) }
             gravity = Gravity.CENTER
             text = date.get(Calendar.DAY_OF_MONTH).toString()
-            textSize = 15f
+            textSize = 14f
             typeface = Typeface.DEFAULT_BOLD
 
-            setTextColor(
-                when {
-                    isSelected -> Color.WHITE
-                    !inVisibleMonth -> Color.parseColor("#C4C4C4")
-                    else -> resources.getColor(R.color.black, theme)
+            when {
+                isSelected -> {
+                    setTextColor(Color.WHITE)
+                    background = roundedBg(Color.parseColor("#2F2F2F"))
                 }
-            )
-
-            background = when {
-                isSelected -> roundedBackground(
-                    fillColor = Color.parseColor("#2F2F2F"),
-                    cornerDp = 10f
-                )
-
-                isToday -> roundedStrokeBackground(
-                    fillColor = Color.TRANSPARENT,
-                    strokeColor = resources.getColor(R.color.orange, theme),
-                    strokeWidthDp = 1.5f,
-                    cornerDp = 10f
-                )
-
-                hasRecords -> roundedBackground(
-                    fillColor = resources.getColor(R.color.day_cell_marked_bg, theme),
-                    cornerDp = 10f
-                )
-
-                else -> null
+                hasData -> {
+                    setTextColor(Color.BLACK)
+                    background = roundedBg(Color.parseColor("#E8F5E9"))
+                }
+                inMonth -> {
+                    setTextColor(Color.BLACK)
+                    background = null
+                }
+                else -> {
+                    setTextColor(Color.LTGRAY)
+                    background = null
+                }
             }
 
-            if (inVisibleMonth) {
-                isClickable = true
-                isFocusable = true
-                setOnClickListener {
-                    selectDate(date)
+            setOnClickListener {
+                selectedDate = date.clone() as Calendar
+                if (!sameMonth(selectedDate, visibleMonth)) {
+                    visibleMonth = (selectedDate.clone() as Calendar).apply { set(Calendar.DAY_OF_MONTH, 1) }
                 }
-            } else {
-                alpha = 0.7f
+                renderScreen()
+                cargarAnalisisDelDia(selectedDate)
             }
         }
     }
 
     private fun renderMealsForSelectedDate() {
         mealContainer.removeAllViews()
-
-        val meals = mealsByDate[dateKey(selectedDate)].orEmpty()
+        val dateKey = dateKeyFormat.format(selectedDate.time)
+        val meals = mealsByDate[dateKey].orEmpty()
 
         if (meals.isEmpty()) {
-            val emptyCard = MaterialCardView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    setMargins(dp(12), dp(8), dp(12), dp(12))
-                }
-                radius = dp(16).toFloat()
-                cardElevation = 0f
-                setCardBackgroundColor(resources.getColor(R.color.card_background, theme))
-                strokeWidth = dp(1)
-                strokeColor = Color.parseColor("#E5E7EB")
-            }
-
-            emptyCard.addView(
-                TextView(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-                    text = "Sin registros para esta fecha"
-                    setTextColor(resources.getColor(R.color.gris_claro, theme))
-                    textSize = 15f
-                    gravity = Gravity.CENTER
-                    typeface = Typeface.DEFAULT_BOLD
-                    setPadding(dp(16), dp(18), dp(16), dp(18))
-                }
-            )
-
-            mealContainer.addView(emptyCard)
+            mealContainer.addView(TextView(this).apply {
+                text = "Sin registros para esta fecha"
+                gravity = Gravity.CENTER
+                setPadding(0, dp(40), 0, 0)
+                setTextColor(Color.GRAY)
+                textSize = 14f
+            })
             return
         }
 
-        val card = MaterialCardView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(dp(12), dp(8), dp(12), dp(12))
-            }
-            radius = dp(16).toFloat()
-            cardElevation = 0f
-            setCardBackgroundColor(resources.getColor(R.color.card_background, theme))
-            strokeWidth = dp(1)
-            strokeColor = Color.parseColor("#EEF2F7")
-        }
-
-        val content = LinearLayout(this).apply {
+        val mainContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(16), dp(16), dp(16))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
 
-        meals.forEachIndexed { index, meal ->
-            content.addView(createMealRow(meal))
-
-            if (index != meals.lastIndex) {
-                content.addView(View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        dp(1)
-                    ).apply {
-                        setMargins(0, dp(14), 0, dp(14))
-                    }
-                    setBackgroundColor(Color.parseColor("#EEF2F7"))
-                })
+        val mealsByType = meals.groupBy { it.section }
+        mealsByType.forEach { (mealType, typeMeals) ->
+            val card = MaterialCardView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, dp(12)) }
+                radius = dp(16).toFloat()
+                cardElevation = 2f
+                setCardBackgroundColor(Color.WHITE)
+                strokeWidth = dp(1)
+                strokeColor = Color.parseColor("#EEF2F7")
             }
-        }
 
-        card.addView(content)
-        mealContainer.addView(card)
+            val list = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(16), dp(16), dp(16))
+            }
+
+            list.addView(TextView(this).apply {
+                text = mealType
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.parseColor("#F86E00"))
+                setPadding(0, 0, 0, dp(8))
+            })
+
+            typeMeals.forEachIndexed { i, meal ->
+                list.addView(createMealRow(meal))
+                if (i < typeMeals.size - 1) {
+                    list.addView(View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            dp(1)
+                        ).apply { setMargins(0, dp(12), 0, dp(12)) }
+                        setBackgroundColor(Color.parseColor("#EEF2F7"))
+                    })
+                }
+            }
+            card.addView(list)
+            mainContainer.addView(card)
+        }
+        mealContainer.addView(mainContainer)
     }
 
     private fun createMealRow(meal: MealEntry): LinearLayout {
-        val row = LinearLayout(this).apply {
+        return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
+
+            val leftColumn = LinearLayout(this@HistorialActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            leftColumn.addView(TextView(this@HistorialActivity).apply {
+                text = meal.title
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.BLACK)
+                maxLines = 2
+            })
+            leftColumn.addView(TextView(this@HistorialActivity).apply {
+                text = meal.time
+                textSize = 12f
+                setTextColor(Color.parseColor("#F86E00"))
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, dp(4), 0, 0)
+            })
+
+            val rightColumn = LinearLayout(this@HistorialActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.END
+            }
+            val caloriesValue = meal.calories.replace(" kcal", "").toIntOrNull() ?: 0
+            rightColumn.addView(TextView(this@HistorialActivity).apply {
+                text = caloriesValue.toString()
+                textSize = 20f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(Color.BLACK)
+            })
+            rightColumn.addView(TextView(this@HistorialActivity).apply {
+                text = "KCAL"
+                textSize = 11f
+                setTextColor(Color.GRAY)
+                setPadding(0, dp(2), 0, 0)
+            })
+
+            addView(leftColumn)
+            addView(rightColumn)
         }
-
-        val left = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        }
-
-        left.addView(TextView(this).apply {
-            text = "${meal.section}: ${meal.title}"
-            textSize = 17f
-            setTextColor(resources.getColor(R.color.black, theme))
-            typeface = Typeface.DEFAULT_BOLD
-        })
-
-        left.addView(TextView(this).apply {
-            text = meal.time
-            textSize = 13f
-            setTextColor(resources.getColor(R.color.orange, theme))
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dp(4), 0, 0)
-        })
-
-        val right = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.END
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            )
-        }
-
-        right.addView(TextView(this).apply {
-            text = meal.calories
-            textSize = 20f
-            setTextColor(resources.getColor(R.color.black, theme))
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.END
-        })
-
-        right.addView(TextView(this).apply {
-            text = "KCAL"
-            textSize = 11f
-            setTextColor(resources.getColor(R.color.gris_claro, theme))
-            typeface = Typeface.DEFAULT_BOLD
-            gravity = Gravity.END
-        })
-
-        row.addView(left)
-        row.addView(right)
-
-        return row
-    }
-
-    private fun selectDate(date: Calendar) {
-        selectedDate = cloneCalendar(date)
-        visibleMonth = cloneCalendar(date).apply {
-            set(Calendar.DAY_OF_MONTH, 1)
-        }
-        renderScreen()
-        cargarAnalisisDelDia(date)
     }
 
     private fun cargarAnalisisDelDia(date: Calendar) {
-        val token = TokenManager.getToken(this)
-        if (token == null) {
-            Log.e(TAG, "Token no encontrado")
-            return
-        }
-
+        val token = TokenManager.getToken(this) ?: return
         val dateStr = dateKeyFormat.format(date.time)
-        Log.d(TAG, "📅 Cargando análisis para fecha: $dateStr")
-
         lifecycleScope.launch {
             try {
                 val response = repository.getAnalysesByDate(token, dateStr)
-
                 if (response.isSuccessful && response.body() != null) {
-                    val analysesResponse = response.body()!!
-                    Log.d(TAG, "✅ Análisis encontrados: ${analysesResponse.count}")
-
-                    if (analysesResponse.data.isEmpty()) {
-                        Log.d(TAG, "No hay datos para esta fecha")
-                        mealsByDate[dateStr] = emptyList()
-                        renderMealsForSelectedDate()
-                        renderCalendar()
-                        return@launch
-                    }
-
-                    val meals = mutableListOf<MealEntry>()
-
-                    analysesResponse.data.forEach { analysis ->
+                    val analyses = response.body()!!.data
+                    val meals = analyses.mapNotNull { analysis ->
                         try {
-                            val mealType = analysis.rawModelResponse?.mealType ?: "Comida"
-                            val dishNames = if (analysis.foodsDetected.isNotEmpty()) {
-                                analysis.foodsDetected.joinToString(", ") { it.name }
-                            } else {
-                                "Plato no especificado"
-                            }
+                            // Obtener nombre de los platos, manejando null
+                            val dishNames = analysis.foodsDetected
+                                ?.joinToString(", ") { it.name }
+                                ?: "Plato no especificado"
 
-                            // EXTRAER HORA DIRECTAMENTE DEL STRING SIN CONVERSIÓN
-                            val time = extractHourFromString(analysis.createdAt)
+                            // Obtener hora local de createdAt (puede ser null)
+                            val timeStr = analysis.createdAt?.let { formatToLocalTime(it) } ?: "N/A"
 
-                            Log.d(TAG, "📝 Procesando: $mealType - $dishNames - $time - ${analysis.nutrition.calories} kcal")
-
-                            meals.add(
-                                MealEntry(
-                                    section = capitalizeMealType(mealType),
-                                    title = dishNames,
-                                    time = time,
-                                    calories = "${analysis.nutrition.calories.toInt()} kcal"
-                                )
+                            MealEntry(
+                                section = analysis.rawModelResponse?.mealType?.replaceFirstChar { it.uppercase() } ?: "Comida",
+                                title = dishNames,
+                                time = timeStr,
+                                calories = "${analysis.nutrition.calories.toInt()} kcal"
                             )
                         } catch (e: Exception) {
-                            Log.e(TAG, "Error procesando análisis individual", e)
+                            Log.e(TAG, "Error procesando análisis", e)
+                            null
                         }
                     }
-
                     mealsByDate[dateStr] = meals
-                    Log.d(TAG, "✅ Comidas cargadas para $dateStr: ${meals.size}")
                     renderMealsForSelectedDate()
                     renderCalendar()
                 } else {
-                    val errorCode = response.code()
-                    Log.w(TAG, "❌ Respuesta no exitosa: $errorCode")
                     mealsByDate[dateStr] = emptyList()
                     renderMealsForSelectedDate()
                 }
-            } catch (error: Exception) {
-                Log.e(TAG, "❌ Error al cargar análisis", error)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error en cargarAnalisisDelDia", e)
                 mealsByDate[dateStr] = emptyList()
                 renderMealsForSelectedDate()
             }
         }
     }
 
-    //  Extraer hora directamente del string
-    private fun extractHourFromString(dateTimeStr: String): String {
+    // Convierte el string ISO con offset (ej: 2026-04-22T23:34:37.000-03:00) a hora local HH:mm
+    private fun formatToLocalTime(isoDateStr: String?): String {
+        if (isoDateStr.isNullOrEmpty()) return "N/A"
+        val formats = arrayOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSSXXX",
+            "yyyy-MM-dd'T'HH:mm:ssXXX",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'"
+        )
+        for (format in formats) {
+            try {
+                val sdf = SimpleDateFormat(format, Locale.US)
+                val date = sdf.parse(isoDateStr)
+                if (date != null) {
+                    val localFormatter = SimpleDateFormat("HH:mm", Locale.getDefault())
+                    return localFormatter.format(date)
+                }
+            } catch (e: Exception) { continue }
+        }
         return try {
-            // Buscar el patrón T seguido de HH:MM
-            val pattern = "T(\\d{2}:\\d{2})".toRegex()
-            val matchResult = pattern.find(dateTimeStr)
-            matchResult?.groupValues?.get(1) ?: "Hora no disponible"
-        } catch (e: Exception) {
-            Log.e(TAG, "Error extrayendo hora", e)
-            "Hora no disponible"
-        }
-    }
-    private fun capitalizeMealType(type: String): String {
-        return when (type.lowercase()) {
-            "desayuno" -> "Desayuno"
-            "almuerzo" -> "Almuerzo"
-            "cena" -> "Cena"
-            "merienda" -> "Merienda"
-            "comida" -> "Comida"
-            else -> type.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
-        }
+            Regex("T(\\d{2}:\\d{2})").find(isoDateStr)?.groupValues?.get(1) ?: "N/A"
+        } catch (e: Exception) { "N/A" }
     }
 
     private fun showMonthPicker() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Selecciona un mes")
-            .setItems(monthLabels) { _, which ->
-                visibleMonth.set(Calendar.MONTH, which)
-                visibleMonth.set(Calendar.DAY_OF_MONTH, 1)
-
-                val maxDay = visibleMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
-                val currentSelectedDay = min(selectedDate.get(Calendar.DAY_OF_MONTH), maxDay)
-
-                selectedDate = cloneCalendar(visibleMonth).apply {
-                    set(Calendar.DAY_OF_MONTH, currentSelectedDay)
-                }
-
-                renderScreen()
-                cargarAnalisisDelDia(selectedDate) // 🔥 Recargar al cambiar mes
-            }
-            .show()
+        MaterialAlertDialogBuilder(this).setTitle("Mes").setItems(monthLabels) { _, i ->
+            visibleMonth.set(Calendar.MONTH, i)
+            renderScreen()
+            cargarAnalisisDelDia(selectedDate)
+        }.show()
     }
 
     private fun showYearPicker() {
         val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-        val years = (currentYear - 20..currentYear + 20).toList()
-        val labels = years.map { it.toString() }.toTypedArray()
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle("Selecciona un año")
-            .setItems(labels) { _, which ->
-                visibleMonth.set(Calendar.YEAR, years[which])
-                visibleMonth.set(Calendar.DAY_OF_MONTH, 1)
-
-                val maxDay = visibleMonth.getActualMaximum(Calendar.DAY_OF_MONTH)
-                val currentSelectedDay = min(selectedDate.get(Calendar.DAY_OF_MONTH), maxDay)
-
-                selectedDate = cloneCalendar(visibleMonth).apply {
-                    set(Calendar.DAY_OF_MONTH, currentSelectedDay)
-                }
-
-                renderScreen()
-                cargarAnalisisDelDia(selectedDate) // 🔥 Recargar al cambiar año
-            }
-            .show()
+        val years = Array(5) { (currentYear - 2 + it).toString() }
+        MaterialAlertDialogBuilder(this).setTitle("Año").setItems(years) { _, i ->
+            visibleMonth.set(Calendar.YEAR, years[i].toInt())
+            renderScreen()
+            cargarAnalisisDelDia(selectedDate)
+        }.show()
     }
 
-    private fun sameMonth(a: Calendar, b: Calendar): Boolean {
-        return a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
-                a.get(Calendar.MONTH) == b.get(Calendar.MONTH)
-    }
-
-    private fun sameDate(a: Calendar, b: Calendar): Boolean {
-        return a.get(Calendar.YEAR) == b.get(Calendar.YEAR) &&
-                a.get(Calendar.MONTH) == b.get(Calendar.MONTH) &&
-                a.get(Calendar.DAY_OF_MONTH) == b.get(Calendar.DAY_OF_MONTH)
-    }
-
-    private fun dateKey(calendar: Calendar): String {
-        return dateKeyFormat.format(calendar.time)
-    }
-
-    private fun cloneCalendar(source: Calendar): Calendar {
-        return (source.clone() as Calendar).apply {
-            normalizeToDate()
-        }
-    }
-
-    private fun Calendar.normalizeToDate() {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-        set(Calendar.MILLISECOND, 0)
-    }
-
-    private fun dp(value: Int): Int {
-        return (value * resources.displayMetrics.density).toInt()
-    }
-
-    private fun roundedBackground(fillColor: Int, cornerDp: Float): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(cornerDp.toInt()).toFloat()
-            setColor(fillColor)
-        }
-    }
-
-    private fun roundedStrokeBackground(
-        fillColor: Int,
-        strokeColor: Int,
-        strokeWidthDp: Float,
-        cornerDp: Float
-    ): GradientDrawable {
-        return GradientDrawable().apply {
-            shape = GradientDrawable.RECTANGLE
-            cornerRadius = dp(cornerDp.toInt()).toFloat()
-            setColor(fillColor)
-            setStroke(dp(strokeWidthDp.toInt()), strokeColor)
-        }
-    }
-
-    private fun capitalizeFirst(text: String): String {
-        return text.replaceFirstChar {
-            if (it.isLowerCase()) it.titlecase(esLocale) else it.toString()
-        }
-    }
+    private fun sameMonth(a: Calendar, b: Calendar) = a.get(Calendar.YEAR) == b.get(Calendar.YEAR) && a.get(Calendar.MONTH) == b.get(Calendar.MONTH)
+    private fun sameDate(a: Calendar, b: Calendar) = sameMonth(a, b) && a.get(Calendar.DAY_OF_MONTH) == b.get(Calendar.DAY_OF_MONTH)
+    private fun Calendar.normalize() { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
+    private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
+    private fun roundedBg(c: Int) = GradientDrawable().apply { shape = GradientDrawable.RECTANGLE; cornerRadius = dp(10).toFloat(); setColor(c) }
 }

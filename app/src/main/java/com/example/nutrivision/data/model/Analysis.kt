@@ -62,7 +62,7 @@ data class Dish(
     @SerializedName("name")
     val name: String,
     @SerializedName("estimatedPortion")
-    val estimatedPortion: String
+    val estimatedPortion: String? = null
 )
 
 // Modelos para guardar análisis
@@ -103,13 +103,15 @@ data class AnalysisItem(
     @SerializedName("imageName")
     val imageName: String,
     @SerializedName("foodsDetected")
-    val foodsDetected: List<Dish>,
+    val foodsDetected: List<Dish>? = null,
     @SerializedName("nutrition")
     val nutrition: Nutrition,
     @SerializedName("rawModelResponse")
     val rawModelResponse: RawModelResponse? = null,
     @SerializedName("createdAt")
-    val createdAt: String
+    val createdAt: String? = null,
+    @SerializedName("date")
+    val date: String? = null
 )
 
 data class RawModelResponse(
@@ -118,5 +120,3 @@ data class RawModelResponse(
     @SerializedName("mealType")
     val mealType: String? = null
 )
-
-
