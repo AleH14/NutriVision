@@ -8,6 +8,7 @@ import com.example.nutrivision.data.model.AuthResponse
 import com.example.nutrivision.data.model.LoginRequest
 import com.example.nutrivision.data.model.RegisterRequest
 import com.example.nutrivision.data.repository.NutriRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 class AuthViewModel(private val repository: NutriRepository) : ViewModel() {
@@ -29,7 +30,9 @@ class AuthViewModel(private val repository: NutriRepository) : ViewModel() {
                     _authResult.value = Result.failure(Exception("Error en login: ${response.code()}"))
                 }
             } catch (e: Exception) {
-                _authResult.value = Result.failure(e)
+                if (e !is CancellationException) {
+                    _authResult.value = Result.failure(e)
+                }
             } finally {
                 _isLoading.value = false
             }
@@ -48,12 +51,13 @@ class AuthViewModel(private val repository: NutriRepository) : ViewModel() {
                 if (response.isSuccessful && response.body() != null) {
                     _authResult.value = Result.success(response.body()!!)
                 } else {
-                    // Intentamos obtener el mensaje de error del cuerpo si existe
                     val errorMsg = response.errorBody()?.string() ?: "Error en registro: ${response.code()}"
                     _authResult.value = Result.failure(Exception(errorMsg))
                 }
             } catch (e: Exception) {
-                _authResult.value = Result.failure(e)
+                if (e !is CancellationException) {
+                    _authResult.value = Result.failure(e)
+                }
             } finally {
                 _isLoading.value = false
             }

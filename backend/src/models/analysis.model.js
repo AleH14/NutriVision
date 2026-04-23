@@ -30,6 +30,7 @@ const analysisSchema = new mongoose.Schema(
     nutrition: { type: nutritionSchema, required: true },
     notes: { type: String, required: false },
     rawModelResponse: { type: Object, required: true },
+    localDate: { type: String, required: false, index: true }, // YYYY-MM-DD in client's local timezone
   },
   { timestamps: true }
 );

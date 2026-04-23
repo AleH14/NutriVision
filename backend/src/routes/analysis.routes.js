@@ -157,6 +157,7 @@ router.post("/image", upload.single("image"), async (req, res, next) => {
       },
       notes: parsed.plateAnalysis || "",
       rawModelResponse: rawResponse,
+      localDate: dishDate,
     });
 
     const consumedDish = await ConsumedDish.create({

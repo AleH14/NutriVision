@@ -291,9 +291,9 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     const Analysis = require("../models/analysis.model");
 
-    // Guardar análisis
-    // Usar new Date(createdAt) para respetar la zona horaria del cliente (ISO 8601 con offset)
-    const analysisDate = createdAt ? new Date(createdAt) : new Date();
+    // createdAt ahora viene como timestamp UNIX en milisegundos
+    // Esto evita problemas de interpretación de zona horaria
+    const analysisDate = createdAt ? new Date(parseInt(createdAt)) : new Date();
 
     const analysis = new Analysis({
       userId,
@@ -302,21 +302,23 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       nutrition: nutrition,
       notes: plateAnalysis,
       rawModelResponse: { mealType, plateAnalysis },
-      createdAt: analysisDate
+      createdAt: analysisDate,
+      localDate: clientDate // Guardar la fecha local del cliente
     });
 
     await analysis.save();
 
-    // Obtener fecha actual LOCAL
-    const hoy = new Date().toISOString().slice(0, 10);
+    // Usar la fecha del cliente en lugar de la del servidor
+    // date viene en formato YYYY-MM-DD desde el cliente (su zona horaria local)
+    const clientDate = date || new Date().toISOString().slice(0, 10);
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
     // Verificar si es un nuevo día y reiniciar si es necesario
-    if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== hoy) {
-      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${hoy})`);
+    if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== clientDate) {
+      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${clientDate})`);
       user.todayNutritionSummary = {
-        date: hoy,
+        date: clientDate,
         proteinGramsConsumed: 0,
         carbsGramsConsumed: 0,
         fatGramsConsumed: 0
@@ -356,14 +358,10 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
         return res.status(400).json({ message: "Formato de fecha inválido, se espera YYYY-MM-DD" });
       }
 
-      // Construir el rango de un día completo en UTC a partir del string de fecha
-      const startDate = new Date(`${date}T00:00:00.000Z`);
-      const endDate = new Date(`${date}T23:59:59.999Z`);
-
-      query.createdAt = { $gte: startDate, $lte: endDate };
+      // Buscar por fecha local exacta (string matching)
+      query.localDate = date;
 
       console.log(`Buscando análisis para fecha: ${date}`);
-      console.log(`Rango UTC: ${startDate.toISOString()} - ${endDate.toISOString()}`);
     }
 
     const analyses = await Analysis.find(query).sort({ createdAt: -1 });
