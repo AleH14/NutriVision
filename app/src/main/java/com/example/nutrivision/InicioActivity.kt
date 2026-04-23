@@ -118,7 +118,10 @@ class InicioActivity : AppCompatActivity() {
                     Log.e(TAG, "Error en respuesta: ${response.code()}")
                 }
             } catch (error: Exception) {
-                Log.e(TAG, "Error de red", error)
+                // No mostrar error si es una cancelación por rotación
+                if (error !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error de red", error)
+                }
             }
         }
     }

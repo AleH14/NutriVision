@@ -278,7 +278,10 @@ class HistorialActivity : AppCompatActivity() {
                     procesarYMostrarAnalisis(dateStr, analysesResponse)
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error de red en historial", e)
+                // No mostrar error si es cancelación por rotación
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error de red en historial", e)
+                }
             }
         }
     }

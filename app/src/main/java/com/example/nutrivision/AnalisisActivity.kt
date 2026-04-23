@@ -175,7 +175,10 @@ class AnalisisActivity : AppCompatActivity() {
             } catch (e: Exception) { 
                 btnGuardarAnalisis?.isEnabled = true 
                 btnGuardarAnalisis?.text = "Guardar"
-                Log.e(TAG, "Error guardando", e)
+                // No registrar si es cancelación por rotación
+                if (e !is kotlinx.coroutines.CancellationException) {
+                    Log.e(TAG, "Error guardando", e)
+                }
             }
         }
     }

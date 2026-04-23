@@ -175,22 +175,8 @@ router.get("/profile", verifyToken, async (req, res, next) => {
     const user = await User.findById(req.userId).select("-password");
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
-    // Recibir la fecha del cliente (Android) desde el header o query
-    // El cliente enviará la fecha actual de su dispositivo
-    const clientDate = req.headers['x-client-date'] || new Date().toISOString().slice(0, 10);
-
-    // Verificar y reiniciar según la fecha del cliente
-    if (user.todayNutritionSummary && user.todayNutritionSummary.date !== clientDate) {
-      user.todayNutritionSummary = {
-        date: clientDate,
-        proteinGramsConsumed: 0,
-        carbsGramsConsumed: 0,
-        fatGramsConsumed: 0
-      };
-
-      await user.save();
-    }
-
+    // NO reiniciar el resumen aquí - solo en save-analysis cuando se guarda un plato
+    // Enviar el resumen como está en la base de datos
     res.json(user);
   } catch (error) {
     next(error);
