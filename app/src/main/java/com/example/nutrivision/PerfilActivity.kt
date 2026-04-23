@@ -80,6 +80,7 @@ class PerfilActivity : AppCompatActivity() {
         setupListeners()
         setupChipListeners()
         setupGeneroChips()
+        setupInputFilters() // ✅ Agregar filtros para evitar decimales
 
         // 1. Cargar caché inmediatamente (0ms lag)
         cargarDesdeCache()
@@ -113,6 +114,16 @@ class PerfilActivity : AppCompatActivity() {
 
         tvMetaDiariaKcal = findViewById(R.id.tvMetaDiariaKcal)
         btnCalcularMetaDiaria = findViewById(R.id.btnCalcularMetaDiaria)
+    }
+
+    // ✅ Configurar filtros para evitar decimales en altura
+    private fun setupInputFilters() {
+        // Solo números enteros para altura (sin decimales)
+        editAltura.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
+
+        // Opcional: también para edad y peso si quieres solo enteros
+        editEdad.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
+        editPesoActual.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
     }
 
     private fun cargarDesdeCache() {
@@ -293,21 +304,77 @@ class PerfilActivity : AppCompatActivity() {
         editText.setPadding(0, 0, 0, 0)
     }
 
+    // ✅ VALIDACIÓN MEJORADA - SIN DECIMALES EN ALTURA
     private fun guardarCambios() {
         val nuevaEdad = editEdad.text.toString().trim()
         val nuevaAltura = editAltura.text.toString().trim()
         val nuevoPeso = editPesoActual.text.toString().trim()
 
-        if (nuevaEdad.isEmpty() || nuevaAltura.isEmpty() || nuevoPeso.isEmpty()) {
-            mostrarToastError("Por favor completa todos los campos")
-            return
+        var isValid = true
+
+        // Validación de edad
+        if (nuevaEdad.isEmpty()) {
+            mostrarToastError("La edad es requerida")
+            isValid = false
+        } else {
+            try {
+                val edadInt = nuevaEdad.toInt()
+                if (edadInt < 1 || edadInt > 120) {
+                    mostrarToastError("Edad inválida (1-120 años)")
+                    isValid = false
+                }
+            } catch (e: NumberFormatException) {
+                mostrarToastError("Ingresa una edad válida")
+                isValid = false
+            }
         }
 
-        val edadInt = nuevaEdad.toInt()
-        val alturaInt = nuevaAltura.toInt()
-        val pesoInt = nuevoPeso.toInt()
+        // ✅ VALIDACIÓN DE ALTURA - SIN DECIMALES
+        if (nuevaAltura.isEmpty()) {
+            mostrarToastError("La altura es requerida")
+            isValid = false
+        } else {
+            // Verificar si contiene punto o coma (decimales)
+            if (nuevaAltura.contains(".") || nuevaAltura.contains(",")) {
+                mostrarToastError("No se aceptan decimales en altura. Usa centímetros (ej: 170)")
+                isValid = false
+            } else {
+                try {
+                    val alturaInt = nuevaAltura.toInt()
+                    if (alturaInt < 50 || alturaInt > 300) {
+                        mostrarToastError("Altura inválida (50-300 cm)")
+                        isValid = false
+                    }
+                } catch (e: NumberFormatException) {
+                    mostrarToastError("Ingresa una altura válida")
+                    isValid = false
+                }
+            }
+        }
 
-        guardarCambiosEnBackend(edadInt, alturaInt, pesoInt)
+        // Validación de peso
+        if (nuevoPeso.isEmpty()) {
+            mostrarToastError("El peso es requerido")
+            isValid = false
+        } else {
+            try {
+                val pesoInt = nuevoPeso.toInt()
+                if (pesoInt < 20 || pesoInt > 500) {
+                    mostrarToastError("Peso inválido (20-500 lb)")
+                    isValid = false
+                }
+            } catch (e: NumberFormatException) {
+                mostrarToastError("Ingresa un peso válido")
+                isValid = false
+            }
+        }
+
+        if (isValid) {
+            val edadInt = nuevaEdad.toInt()
+            val alturaInt = nuevaAltura.toInt()
+            val pesoInt = nuevoPeso.toInt()
+            guardarCambiosEnBackend(edadInt, alturaInt, pesoInt)
+        }
     }
 
     private fun guardarCambiosEnBackend(edad: Int, altura: Int, peso: Int) {
@@ -345,7 +412,6 @@ class PerfilActivity : AppCompatActivity() {
                     val errorBody = response.errorBody()?.string() ?: "Error desconocido"
                     Log.e(TAG, "Error al actualizar perfil: ${response.code()} - $errorBody")
 
-                    // Mensaje más amigable según el error
                     val mensaje = when (response.code()) {
                         401 -> "Sesión expirada. Inicia sesión nuevamente."
                         404 -> "Usuario no encontrado. Inicia sesión de nuevo."
@@ -353,7 +419,6 @@ class PerfilActivity : AppCompatActivity() {
                     }
                     mostrarToastError(mensaje)
 
-                    // Si el token es inválido, redirigir al login
                     if (response.code() == 401 || response.code() == 404) {
                         TokenManager.logout(this@PerfilActivity)
                         irALogin()

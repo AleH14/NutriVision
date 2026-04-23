@@ -192,12 +192,80 @@ class DatosInicialesActivity : AppCompatActivity() {
 
         var isValid = true
 
-        if (edad.isEmpty()) { lblEdad.error = "Requerido"; isValid = false } else lblEdad.error = null
-        if (altura.isEmpty()) { lblAltura.error = "Requerido"; isValid = false } else lblAltura.error = null
-        if (pesoActual.isEmpty()) { lblPesoActual.error = "Requerido"; isValid = false } else lblPesoActual.error = null
+        // Validación de edad
+        if (edad.isEmpty()) {
+            lblEdad.error = "Requerido"
+            isValid = false
+        } else {
+            try {
+                val edadInt = edad.toInt()
+                if (edadInt < 1 || edadInt > 120) {
+                    lblEdad.error = "Edad inválida (1-120 años)"
+                    isValid = false
+                } else {
+                    lblEdad.error = null
+                }
+            } catch (e: NumberFormatException) {
+                lblEdad.error = "Ingresa un número válido"
+                isValid = false
+            }
+        }
 
-        if (generoSeleccionado == null || actividadSeleccionada == null || objetivoSeleccionado == null) {
-            mostrarToastError("Completa todas las selecciones")
+        // ✅ VALIDACIÓN DE ALTURA - SIN DECIMALES
+        if (altura.isEmpty()) {
+            lblAltura.error = "Requerido"
+            isValid = false
+        } else {
+            // Verificar si contiene punto o coma (decimales)
+            if (altura.contains(".") || altura.contains(",")) {
+                lblAltura.error = "No se aceptan decimales. Usa números enteros (cm)"
+                isValid = false
+            } else {
+                try {
+                    val alturaInt = altura.toInt()
+                    if (alturaInt < 50 || alturaInt > 300) {
+                        lblAltura.error = "Altura inválida (50-300 cm)"
+                        isValid = false
+                    } else {
+                        lblAltura.error = null
+                    }
+                } catch (e: NumberFormatException) {
+                    lblAltura.error = "Ingresa un número entero válido"
+                    isValid = false
+                }
+            }
+        }
+
+        // Validación de peso actual
+        if (pesoActual.isEmpty()) {
+            lblPesoActual.error = "Requerido"
+            isValid = false
+        } else {
+            try {
+                val pesoInt = pesoActual.toInt()
+                if (pesoInt < 20 || pesoInt > 500) {
+                    lblPesoActual.error = "Peso inválido (20-500 lb)"
+                    isValid = false
+                } else {
+                    lblPesoActual.error = null
+                }
+            } catch (e: NumberFormatException) {
+                lblPesoActual.error = "Ingresa un número válido"
+                isValid = false
+            }
+        }
+
+        // Validación de selecciones
+        if (generoSeleccionado == null) {
+            mostrarToastError("Selecciona tu género")
+            isValid = false
+        }
+        if (actividadSeleccionada == null) {
+            mostrarToastError("Selecciona tu nivel de actividad")
+            isValid = false
+        }
+        if (objetivoSeleccionado == null) {
+            mostrarToastError("Selecciona tu objetivo")
             isValid = false
         }
 
@@ -221,14 +289,12 @@ class DatosInicialesActivity : AppCompatActivity() {
                 dailyCalorieGoalKcal = caloriasBase
             )
 
-            // Cambiar texto del botón a "Cargando..."
             btnGuardarPerfil.isEnabled = false
             btnGuardarPerfil.text = "Cargando..."
 
             authViewModel.register(request)
         }
     }
-
     @Suppress("DEPRECATION")
     private fun mostrarToastExitoso(mensaje: String) {
         val layout = LinearLayout(this).apply {
