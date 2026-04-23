@@ -11,6 +11,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.nutrivision.data.model.AnalysesResponse
 import com.example.nutrivision.data.network.RetrofitClient
@@ -21,7 +22,6 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.min
 
 class HistorialActivity : AppCompatActivity() {
 
@@ -151,37 +151,43 @@ class HistorialActivity : AppCompatActivity() {
     private fun createDayCell(date: Calendar): TextView {
         val dateStr = dateKey(date)
         val inVisibleMonth = sameMonth(date, visibleMonth)
-        val isToday = sameDate(date, Calendar.getInstance())
         val isSelected = sameDate(date, selectedDate)
-        
-        // Verificar si hay datos en memoria o en caché para marcar el punto en el calendario
-        val hasRecords = mealsByDate.containsKey(dateStr) || 
-                        DataCacheManager.getCache(this, "history_$dateStr", AnalysesResponse::class.java) != null
+
+        // Verificar si hay datos para esta fecha
+        val hasRecords = mealsByDate.containsKey(dateStr) && !mealsByDate[dateStr].isNullOrEmpty()
 
         return TextView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(0, dp(44)).apply {
-                weight = 1f
+            layoutParams = LinearLayout.LayoutParams(0, dp(48), 1f).apply {
                 setMargins(dp(2), dp(2), dp(2), dp(2))
             }
             gravity = Gravity.CENTER
             text = date.get(Calendar.DAY_OF_MONTH).toString()
-            textSize = 15f
+            textSize = 14f
             typeface = Typeface.DEFAULT_BOLD
-            setTextColor(when {
-                isSelected -> Color.WHITE
-                !inVisibleMonth -> Color.parseColor("#C4C4C4")
-                else -> Color.BLACK
-            })
-            background = when {
-                isSelected -> roundedBackground(Color.parseColor("#2F2F2F"), 10f)
-                isToday -> roundedStrokeBackground(Color.TRANSPARENT, Color.parseColor("#F86E00"), 1.5f, 10f)
-                hasRecords -> roundedBackground(Color.parseColor("#E8F5E9"), 10f)
-                else -> null
+
+            // Prioridad: seleccionado > tiene datos > mes actual > otro mes
+            when {
+                isSelected -> {
+                    setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.white))
+                    background = roundedBg(ContextCompat.getColor(this@HistorialActivity, R.color.black))
+                }
+                hasRecords && inVisibleMonth -> {
+                    setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.black))
+                    background = roundedBg(ContextCompat.getColor(this@HistorialActivity, R.color.card_green))
+                }
+                inVisibleMonth -> {
+                    setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.black))
+                    background = null
+                }
+                else -> {
+                    setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.gray))
+                    background = null
+                    alpha = 0.7f
+                }
             }
+
             if (inVisibleMonth) {
                 setOnClickListener { selectDate(date) }
-            } else {
-                alpha = 0.7f
             }
         }
     }
@@ -192,67 +198,129 @@ class HistorialActivity : AppCompatActivity() {
         val meals = mealsByDate[dateStr] ?: emptyList()
 
         if (meals.isEmpty()) {
-            val emptyText = TextView(this).apply {
+            mealContainer.addView(TextView(this).apply {
                 text = "Sin registros para esta fecha"
-                setTextColor(Color.GRAY)
                 gravity = Gravity.CENTER
-                setPadding(0, dp(20), 0, dp(20))
-            }
-            mealContainer.addView(emptyText)
+                setPadding(0, dp(40), 0, 0)
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.gray))
+                textSize = 14f
+            })
             return
         }
 
-        val card = MaterialCardView(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(dp(12), dp(8), dp(12), dp(12))
-            }
-            radius = dp(16).toFloat()
-            setCardBackgroundColor(Color.WHITE)
-            strokeWidth = dp(1)
-            strokeColor = Color.parseColor("#EEF2F7")
-        }
-
-        val content = LinearLayout(this).apply {
+        val mainContainer = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(16), dp(16), dp(16), dp(16))
+            setPadding(dp(12), dp(8), dp(12), dp(8))
         }
 
-        meals.forEachIndexed { index, meal ->
-            content.addView(createMealRow(meal))
-            if (index != meals.lastIndex) {
-                content.addView(View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1)).apply { setMargins(0, dp(14), 0, dp(14)) }
-                    setBackgroundColor(Color.parseColor("#EEF2F7"))
-                })
+        // Agrupar por tipo de comida (section)
+        val mealsByType = meals.groupBy { it.section }
+
+        mealsByType.forEach { (mealType, typeMeals) ->
+            val card = MaterialCardView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { setMargins(0, 0, 0, dp(12)) }
+                radius = dp(16).toFloat()
+                cardElevation = 2f
+                setCardBackgroundColor(ContextCompat.getColor(this@HistorialActivity, R.color.card_background))
+                strokeWidth = dp(1)
+                strokeColor = Color.parseColor("#EEF2F7")
             }
+
+            val list = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(16), dp(16), dp(16))
+            }
+
+            // Título del tipo de comida en NARANJA (usando color orange del colors.xml)
+            list.addView(TextView(this).apply {
+                text = mealType  // "Desayuno", "Almuerzo", "Cena", "Merienda"
+                textSize = 18f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.orange))
+                setPadding(0, 0, 0, dp(8))
+            })
+
+            typeMeals.forEachIndexed { i, meal ->
+                list.addView(createMealRow(meal))
+                if (i < typeMeals.size - 1) {
+                    list.addView(View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            dp(1)
+                        ).apply { setMargins(0, dp(12), 0, dp(12)) }
+                        setBackgroundColor(Color.parseColor("#EEF2F7"))
+                    })
+                }
+            }
+            card.addView(list)
+            mainContainer.addView(card)
         }
-        card.addView(content)
-        mealContainer.addView(card)
+        mealContainer.addView(mainContainer)
     }
 
     private fun createMealRow(meal: MealEntry): LinearLayout {
-        val row = LinearLayout(this).apply {
+        return LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-        }
-        val left = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        }
-        left.addView(TextView(this).apply { text = "${meal.section}: ${meal.title}"; textSize = 16f; typeface = Typeface.DEFAULT_BOLD; setTextColor(Color.BLACK) })
-        left.addView(TextView(this).apply { text = meal.time; textSize = 13f; setTextColor(Color.parseColor("#F86E00")) })
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
 
-        val right = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.END }
-        right.addView(TextView(this).apply { text = meal.calories; textSize = 18f; typeface = Typeface.DEFAULT_BOLD; setTextColor(Color.BLACK) })
-        right.addView(TextView(this).apply { text = "KCAL"; textSize = 10f; setTextColor(Color.GRAY) })
+            val leftColumn = LinearLayout(this@HistorialActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            leftColumn.addView(TextView(this@HistorialActivity).apply {
+                text = meal.title  // Nombre del plato
+                textSize = 15f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.black))
+                maxLines = 2
+            })
+            leftColumn.addView(TextView(this@HistorialActivity).apply {
+                text = meal.time  // Hora
+                textSize = 12f
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.orange))
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(0, dp(4), 0, 0)
+            })
 
-        row.addView(left)
-        row.addView(right)
-        return row
+            val rightColumn = LinearLayout(this@HistorialActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = Gravity.END
+            }
+            val caloriesValue = meal.calories.replace(" kcal", "").toIntOrNull() ?: 0
+            rightColumn.addView(TextView(this@HistorialActivity).apply {
+                text = caloriesValue.toString()
+                textSize = 20f
+                typeface = Typeface.DEFAULT_BOLD
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.black))
+            })
+            rightColumn.addView(TextView(this@HistorialActivity).apply {
+                text = "KCAL"
+                textSize = 11f
+                setTextColor(ContextCompat.getColor(this@HistorialActivity, R.color.gray))
+                setPadding(0, dp(2), 0, 0)
+            })
+
+            addView(leftColumn)
+            addView(rightColumn)
+        }
     }
 
     private fun selectDate(date: Calendar) {
         selectedDate = cloneCalendar(date)
+        // Si la fecha seleccionada está fuera del mes visible, cambiar el mes visible
+        if (!sameMonth(selectedDate, visibleMonth)) {
+            visibleMonth = cloneCalendar(selectedDate).apply {
+                set(Calendar.DAY_OF_MONTH, 1)
+                normalizeToDate()
+            }
+        }
         renderScreen()
         cargarAnalisisDelDia(date)
     }
@@ -261,48 +329,53 @@ class HistorialActivity : AppCompatActivity() {
         val dateStr = dateKey(date)
         val token = TokenManager.getToken(this) ?: return
 
-        // 1. Intentar cargar desde caché para respuesta inmediata
-        val cachedResponse = DataCacheManager.getCache(this, "history_$dateStr", AnalysesResponse::class.java)
-        if (cachedResponse != null) {
-            Log.d(TAG, "Mostrando historial desde caché para $dateStr")
-            procesarYMostrarAnalisis(dateStr, cachedResponse)
-        }
-
-        // 2. Consultar al servidor para datos frescos
         lifecycleScope.launch {
             try {
                 val response = repository.getAnalysesByDate(token, dateStr)
                 if (response.isSuccessful && response.body() != null) {
-                    val analysesResponse = response.body()!!
-                    DataCacheManager.saveCache(this@HistorialActivity, "history_$dateStr", analysesResponse)
-                    procesarYMostrarAnalisis(dateStr, analysesResponse)
+                    val analyses = response.body()!!.data
+                    val meals = analyses.mapNotNull { analysis ->
+                        try {
+                            val dishNames = analysis.foodsDetected
+                                ?.joinToString(", ") { it.name }
+                                ?: "Plato no especificado"
+
+                            val timeStr = analysis.localTime ?: extractHourFromString(analysis.createdAt)
+
+                            // Capitalizar correctamente el tipo de comida
+                            val mealType = analysis.rawModelResponse?.mealType ?: "Comida"
+                            val capitalizedMealType = when (mealType.lowercase()) {
+                                "desayuno" -> "Desayuno"
+                                "almuerzo" -> "Almuerzo"
+                                "cena" -> "Cena"
+                                "merienda" -> "Merienda"
+                                else -> mealType.replaceFirstChar { it.uppercase() }
+                            }
+
+                            MealEntry(
+                                section = capitalizedMealType,
+                                title = dishNames,
+                                time = timeStr,
+                                calories = "${analysis.nutrition.calories.toInt()} kcal"
+                            )
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error procesando análisis", e)
+                            null
+                        }
+                    }
+                    mealsByDate[dateStr] = meals
+                    renderMealsForSelectedDate()
+                    renderCalendar()
+                } else {
+                    mealsByDate[dateStr] = emptyList()
+                    renderMealsForSelectedDate()
                 }
             } catch (e: Exception) {
-                // No mostrar error si es cancelación por rotación
-                if (e !is kotlinx.coroutines.CancellationException) {
-                    Log.e(TAG, "Error de red en historial", e)
-                }
+                Log.e(TAG, "Error en cargarAnalisisDelDia", e)
+                mealsByDate[dateStr] = emptyList()
+                renderMealsForSelectedDate()
             }
         }
-    }
-
-    private fun procesarYMostrarAnalisis(dateStr: String, response: AnalysesResponse) {
-        val meals = response.data.map { analysis ->
-            val dishNames = analysis.foodsDetected.joinToString(", ") { it.name }.ifEmpty { "Plato" }
-            // Usar localTime si está disponible, si no, extraer del createdAt (fallback)
-            val time = analysis.localTime ?: extractHourFromString(analysis.createdAt)
-            MealEntry(
-                section = capitalizeMealType(analysis.rawModelResponse?.mealType ?: "Comida"),
-                title = dishNames,
-                time = time,
-                calories = "${analysis.nutrition.calories.toInt()}"
-            )
-        }
-        mealsByDate[dateStr] = meals
-        if (dateStr == dateKey(selectedDate)) {
-            renderMealsForSelectedDate()
-        }
-        renderCalendar()
     }
 
     private fun extractHourFromString(dateTimeStr: String): String {
@@ -312,10 +385,8 @@ class HistorialActivity : AppCompatActivity() {
         } catch (e: Exception) { "--:--" }
     }
 
-    private fun capitalizeMealType(type: String): String = type.lowercase().replaceFirstChar { it.titlecase() }
-
     private fun showMonthPicker() {
-        MaterialAlertDialogBuilder(this).setTitle("Mes").setItems(monthLabels) { _, w -> 
+        MaterialAlertDialogBuilder(this).setTitle("Mes").setItems(monthLabels) { _, w ->
             visibleMonth.set(Calendar.MONTH, w)
             selectDate(visibleMonth)
         }.show()
@@ -336,7 +407,10 @@ class HistorialActivity : AppCompatActivity() {
     private fun cloneCalendar(source: Calendar) = (source.clone() as Calendar).apply { normalizeToDate() }
     private fun Calendar.normalizeToDate() { set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
     private fun dp(v: Int) = (v * resources.displayMetrics.density).toInt()
-    private fun roundedBackground(c: Int, r: Float) = GradientDrawable().apply { shape = GradientDrawable.RECTANGLE; cornerRadius = dp(r.toInt()).toFloat(); setColor(c) }
-    private fun roundedStrokeBackground(fc: Int, sc: Int, sw: Float, r: Float) = GradientDrawable().apply { shape = GradientDrawable.RECTANGLE; cornerRadius = dp(r.toInt()).toFloat(); setColor(fc); setStroke(dp(sw.toInt()), sc) }
+    private fun roundedBg(c: Int) = GradientDrawable().apply {
+        shape = GradientDrawable.RECTANGLE
+        cornerRadius = dp(10).toFloat()
+        setColor(c)
+    }
     private fun capitalizeFirst(t: String) = t.replaceFirstChar { it.titlecase(esLocale) }
 }
