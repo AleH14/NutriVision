@@ -20,10 +20,7 @@ async function start() {
   await connectDb();
   app.listen(env.port, "0.0.0.0", () => {
     console.log(`NutriVision backend corriendo en http://0.0.0.0:${env.port}`);
-    const localIPs = getLocalIPs();
-    if (localIPs.length > 0) {
-      localIPs.forEach(ip => console.log(`Accesible en tu red local en http://${ip}:${env.port}`));
-    }
+    console.log(`Accesible en tu red local`);
   });
 }
 

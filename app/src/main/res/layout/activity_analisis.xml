@@ -186,15 +186,6 @@
                             android:textSize="34sp"
                             android:textStyle="bold" />
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:layout_marginBottom="6dp"
-                            android:fontFamily="@font/montserrat"
-                            android:text="Calorías"
-                            android:textColor="@color/gris_claro"
-                            android:textSize="18sp" />
                     </LinearLayout>
 
                     <LinearLayout
