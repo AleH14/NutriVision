@@ -31,6 +31,7 @@ const analysisSchema = new mongoose.Schema(
     notes: { type: String, required: false },
     rawModelResponse: { type: Object, required: true },
     localDate: { type: String, required: false, index: true }, // YYYY-MM-DD in client's local timezone
+    localTime: { type: String, required: false }, // HH:mm:ss in client's local timezone
   },
   { timestamps: true }
 );

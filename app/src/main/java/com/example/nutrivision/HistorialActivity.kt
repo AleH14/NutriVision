@@ -286,7 +286,8 @@ class HistorialActivity : AppCompatActivity() {
     private fun procesarYMostrarAnalisis(dateStr: String, response: AnalysesResponse) {
         val meals = response.data.map { analysis ->
             val dishNames = analysis.foodsDetected.joinToString(", ") { it.name }.ifEmpty { "Plato" }
-            val time = extractHourFromString(analysis.createdAt)
+            // Usar localTime si está disponible, si no, extraer del createdAt (fallback)
+            val time = analysis.localTime ?: extractHourFromString(analysis.createdAt)
             MealEntry(
                 section = capitalizeMealType(analysis.rawModelResponse?.mealType ?: "Comida"),
                 title = dishNames,

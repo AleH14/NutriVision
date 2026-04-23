@@ -148,14 +148,14 @@ class AnalisisActivity : AppCompatActivity() {
                 // Usar hora local del dispositivo (sin convertir a UTC)
                 val now = Calendar.getInstance()
                 val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(now.time)
+                val timeStr = SimpleDateFormat("HH:mm:ss", Locale.US).format(now.time)
                 
-                // Enviar timestamp UNIX en milisegundos para evitar problemas de zona horaria
-                // El servidor lo procesará como número y lo almacenará como Date sin ambigüedades
+                // Enviar timestamp UNIX en milisegundos para referencia
                 val createdAtStr = now.timeInMillis.toString()
 
                 val response = repository.saveAnalysis(
                     token, imageFile.name, result.dishes, result.nutrition, 
-                    result.plateAnalysis, result.mealType, createdAtStr, dateStr
+                    result.plateAnalysis, result.mealType, createdAtStr, dateStr, timeStr
                 )
 
                 if (response.isSuccessful) {

@@ -80,7 +80,9 @@ data class SaveAnalysisRequest(
     @SerializedName("createdAt")
     val createdAt: String,
     @SerializedName("date")
-    val date: String
+    val date: String,
+    @SerializedName("time")
+    val time: String = ""
 )
 
 data class SaveAnalysisResponse(
@@ -109,7 +111,9 @@ data class AnalysisItem(
     @SerializedName("rawModelResponse")
     val rawModelResponse: RawModelResponse? = null,
     @SerializedName("createdAt")
-    val createdAt: String
+    val createdAt: String,
+    @SerializedName("localTime")
+    val localTime: String? = null
 )
 
 data class RawModelResponse(

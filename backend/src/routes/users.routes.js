@@ -286,10 +286,15 @@ router.post("/analyze-food-image", verifyToken, analyzeImageLimiter, upload.sing
 // POST /api/users/save-analysis
 router.post("/save-analysis", verifyToken, async (req, res, next) => {
   try {
-    const { imageFilename, dishes, nutrition, plateAnalysis, mealType, createdAt, date } = req.body;
+    const { imageFilename, dishes, nutrition, plateAnalysis, mealType, createdAt, date, time } = req.body;
     const userId = req.userId;
 
     const Analysis = require("../models/analysis.model");
+
+    // Declarar clientDate primero (IMPORTANTE: antes de usarlo)
+    // date viene en formato YYYY-MM-DD desde el cliente (su zona horaria local)
+    const clientDate = date || new Date().toISOString().slice(0, 10);
+    const clientTime = time || "";
 
     // createdAt ahora viene como timestamp UNIX en milisegundos
     // Esto evita problemas de interpretación de zona horaria
@@ -303,14 +308,12 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
       notes: plateAnalysis,
       rawModelResponse: { mealType, plateAnalysis },
       createdAt: analysisDate,
-      localDate: clientDate // Guardar la fecha local del cliente
+      localDate: clientDate, // Guardar la fecha local del cliente
+      localTime: clientTime  // Guardar la hora local del cliente
     });
 
     await analysis.save();
 
-    // Usar la fecha del cliente en lugar de la del servidor
-    // date viene en formato YYYY-MM-DD desde el cliente (su zona horaria local)
-    const clientDate = date || new Date().toISOString().slice(0, 10);
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "Usuario no encontrado" });
 
@@ -372,7 +375,8 @@ router.get("/analyses", verifyToken, async (req, res, next) => {
       foodsDetected: analysis.foodsDetected,
       nutrition: analysis.nutrition,
       rawModelResponse: analysis.rawModelResponse,
-      createdAt: analysis.createdAt
+      createdAt: analysis.createdAt,
+      localTime: analysis.localTime // Incluir la hora local en la respuesta
     }));
 
     res.json({
