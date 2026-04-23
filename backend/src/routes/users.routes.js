@@ -299,7 +299,6 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     const Analysis = require("../models/analysis.model");
 
-    // 🔥 IMPORTANTE: Usar la fecha enviada por el cliente o la actual
     const clientDate = date || getLocalDateString();
     const clientTime = time || "";
 
@@ -327,21 +326,15 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
 
     console.log(`📊 Resumen actual en BD:`, user.todayNutritionSummary);
 
-    // 🔥 Verificar si es un nuevo día
-    const fechaActual = getLocalDateString();
-    const fechaResumen = user.todayNutritionSummary?.date;
-
-    if (!user.todayNutritionSummary || fechaResumen !== clientDate) {
-      console.log(`🔄 Reiniciando resumen diario`);
-      console.log(`   Fecha BD: ${fechaResumen}`);
-      console.log(`   Fecha cliente: ${clientDate}`);
-      console.log(`   Fecha servidor: ${fechaActual}`);
-
+    // Verificar si es un nuevo día
+    if (!user.todayNutritionSummary || user.todayNutritionSummary.date !== clientDate) {
+      console.log(`🔄 Reiniciando resumen diario (nuevo día: ${clientDate})`);
       user.todayNutritionSummary = {
-        date: clientDate,  // ← Usar la fecha del cliente
+        date: clientDate,
         proteinGramsConsumed: 0,
         carbsGramsConsumed: 0,
-        fatGramsConsumed: 0
+        fatGramsConsumed: 0,
+        caloriesConsumed: 0  // INICIALIZAR CALORÍAS
       };
     }
 
@@ -349,12 +342,14 @@ router.post("/save-analysis", verifyToken, async (req, res, next) => {
     const proteinasAAgregar = nutrition.proteinGrams || 0;
     const carbsAAgregar = nutrition.carbsGrams || 0;
     const grasasAAgregar = nutrition.fatGrams || 0;
+    const caloriasAAgregar = nutrition.calories || 0;  // USAR CALORÍAS DE OPENAI
 
-    console.log(`➕ Sumando: P=${proteinasAAgregar}g, C=${carbsAAgregar}g, G=${grasasAAgregar}g`);
+    console.log(`➕ Sumando: P=${proteinasAAgregar}g, C=${carbsAAgregar}g, G=${grasasAAgregar}g, Kcal=${caloriasAAgregar}`);
 
     user.todayNutritionSummary.proteinGramsConsumed += proteinasAAgregar;
     user.todayNutritionSummary.carbsGramsConsumed += carbsAAgregar;
     user.todayNutritionSummary.fatGramsConsumed += grasasAAgregar;
+    user.todayNutritionSummary.caloriesConsumed += caloriasAAgregar;  // SUMAR CALORÍAS
 
     console.log(`📊 Nuevo resumen:`, user.todayNutritionSummary);
 
@@ -476,7 +471,8 @@ router.post("/reset-daily-summary", verifyToken, async (req, res, next) => {
       date: hoy,
       proteinGramsConsumed: 0,
       carbsGramsConsumed: 0,
-      fatGramsConsumed: 0
+      fatGramsConsumed: 0,
+      caloriesConsumed: 0  //INICIALIZAR CALORÍAS
     };
 
     await user.save();

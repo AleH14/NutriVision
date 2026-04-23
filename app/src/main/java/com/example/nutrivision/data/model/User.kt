@@ -23,5 +23,6 @@ data class NutritionSummary(
     val date: String,
     val proteinGramsConsumed: Double,
     val carbsGramsConsumed: Double,
-    val fatGramsConsumed: Double
+    val fatGramsConsumed: Double,
+    val caloriesConsumed: Double = 0.0
 )

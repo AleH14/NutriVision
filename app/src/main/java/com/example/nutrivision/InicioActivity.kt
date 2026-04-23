@@ -230,9 +230,18 @@ class InicioActivity : AppCompatActivity() {
             val c = resumen.carbsGramsConsumed
             val g = resumen.fatGramsConsumed
 
-            val caloriasConsumidas = (p * 4 + c * 4 + g * 9).toInt()
+            // ✅ USAR LAS CALORÍAS GUARDADAS EN BD (NO RECALCULAR)
+            val caloriasConsumidas = if (resumen.caloriesConsumed > 0) {
+                resumen.caloriesConsumed.toInt()
+            } else {
+                // Fallback: calcular si no existe (para datos antiguos)
+                (p * 4 + c * 4 + g * 9).toInt()
+            }
+
             val porcentaje = if (metaCaloriasDiarias > 0) ((caloriasConsumidas.toFloat() / metaCaloriasDiarias) * 100).toInt() else 0
             val caloriasRestantes = (metaCaloriasDiarias - caloriasConsumidas).coerceAtLeast(0)
+
+            Log.d(TAG, "📊 Calorías en BD: $caloriasConsumidas, Meta: $metaCaloriasDiarias")
 
             tvCaloriasConsumidas?.text = "$caloriasConsumidas /"
             tvCaloriasMeta?.text = " $metaCaloriasDiarias kcal"
@@ -254,7 +263,6 @@ class InicioActivity : AppCompatActivity() {
             mostrarValoresEnCeroConMetas(usuario)
         }
     }
-
     private fun setupNavigation() {
         val bottomNav = findViewById<BottomNavigationView>(R.id.bottomNavigation)
         bottomNav.selectedItemId = R.id.nav_inicio

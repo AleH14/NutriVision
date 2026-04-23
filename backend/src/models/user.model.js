@@ -6,6 +6,7 @@ const todayNutritionSummarySchema = new mongoose.Schema(
     proteinGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
     carbsGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
     fatGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
+    caloriesConsumed: { type: Number, required: true, default: 0, min: 0 }
   },
   { _id: false }
 );
