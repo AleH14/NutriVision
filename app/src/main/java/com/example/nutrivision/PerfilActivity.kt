@@ -61,6 +61,7 @@ class PerfilActivity : AppCompatActivity() {
 
     // Datos del usuario (Estado local)
     private var generoActual = ""
+    private var actividadFisicaActual = ""
     private var objetivoActual = ""
     private var dailyCalorieGoalKcal = 0
 
@@ -151,6 +152,7 @@ class PerfilActivity : AppCompatActivity() {
         editPesoActual.setText(usuario.currentWeightLb.toString())
         
         generoActual = usuario.gender
+        actividadFisicaActual = usuario.physicalActivity
         objetivoActual = usuario.personalGoal
         dailyCalorieGoalKcal = usuario.dailyCalorieGoalKcal.toInt()
         
@@ -315,6 +317,7 @@ class PerfilActivity : AppCompatActivity() {
                     heightCm = altura,
                     currentWeightLb = peso,
                     gender = generoActual,
+                    physicalActivity = actividadFisicaActual,
                     personalGoal = objetivoActual
                 )
                 val response = repository.updateProfile(token, updateRequest)
@@ -325,10 +328,13 @@ class PerfilActivity : AppCompatActivity() {
                     renderizarUsuario(userUpdated)
                     mostrarToastExito("Perfil actualizado")
                 } else {
+                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                    Log.e(TAG, "Error al actualizar perfil: ${response.code()} - $errorBody")
                     mostrarToastError("Error al actualizar perfil")
                 }
             } catch (error: Exception) {
                 if (error !is CancellationException) {
+                    Log.e(TAG, "Excepción al actualizar perfil", error)
                     mostrarToastError("Error: ${error.message}")
                 }
             }

@@ -194,8 +194,13 @@ router.put("/profile", verifyToken, async (req, res, next) => {
       if (req.body[field] !== undefined) user[field] = req.body[field];
     });
 
-    await user.save();
-    res.json({ message: "Perfil actualizado", user });
+    try {
+      await user.save();
+      res.json(user.toJSON ? user.toJSON() : user);
+    } catch (validationError) {
+      console.error("Error de validación al actualizar perfil:", validationError.message);
+      return res.status(400).json({ message: validationError.message || "Error de validación" });
+    }
   } catch (error) {
     next(error);
   }
