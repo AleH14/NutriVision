@@ -1,16 +1,19 @@
 const express = require("express");
 const cors = require("cors");
 const analysisRoutes = require("./routes/analysis.routes");
+const usersRoutes = require("./routes/users.routes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ limit: "2mb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.use("/api/users", usersRoutes);
 app.use("/api/analysis", analysisRoutes);
 
 app.use((err, _req, res, _next) => {

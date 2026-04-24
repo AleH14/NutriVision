@@ -1,18 +1,33 @@
 package com.example.nutrivision
 
 import android.content.Intent
+import android.graphics.Typeface
 import android.os.Bundle
+import android.util.Log
+import android.view.Gravity
 import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.nutrivision.data.model.UpdateUserRequest
+import com.example.nutrivision.data.model.User
+import com.example.nutrivision.data.network.RetrofitClient
+import com.example.nutrivision.data.repository.NutriRepository
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.google.android.material.button.MaterialButton
-import com.google.android.material.card.MaterialCardView
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 class PerfilActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "PerfilActivity"
+        private const val CACHE_KEY = "user_profile_cache"
+    }
 
     // Views principales
     private lateinit var bottomNav: BottomNavigationView
@@ -20,12 +35,13 @@ class PerfilActivity : AppCompatActivity() {
     private lateinit var tvNombreUsuario: TextView
     private lateinit var btnEditarPerfil: TextView
     private lateinit var btnCerrarSesion: TextView
+    private lateinit var btnCambiarPassword: TextView
     private lateinit var btnGuardarCambios: MaterialButton
 
     // EditTexts
     private lateinit var editEdad: EditText
     private lateinit var editAltura: EditText
-    private lateinit var editPesoObjetivo: EditText
+    private lateinit var editPesoActual: EditText
 
     // Género
     private lateinit var tvGenero: TextView
@@ -41,56 +57,161 @@ class PerfilActivity : AppCompatActivity() {
 
     // Variables de estado
     private var isEditing = false
+    private lateinit var repository: NutriRepository
 
-    // Datos del usuario quemados
-    private var edadActual = "21"
-    private var alturaActual = "150"
-    private var generoActual = "Femenino"
-    private var objetivoActual = "Mantener Peso"
-    private var pesoObjetivoActual = "110"
+    // Datos del usuario (Estado local)
+    private var generoActual = ""
+    private var actividadFisicaActual = ""
+    private var objetivoActual = ""
+    private var dailyCalorieGoalKcal = 0
+
+    // View para meta diaria
+    private var tvMetaDiariaKcal: TextView? = null
+    private var btnCalcularMetaDiaria: MaterialButton? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_perfil)
+
+        repository = NutriRepository(RetrofitClient.instance)
 
         initViews()
         setupNavigation()
         setupListeners()
         setupChipListeners()
         setupGeneroChips()
-        cargarDatosPerfil()
+        setupInputFilters() // ✅ Agregar filtros para evitar decimales
+
+        // 1. Cargar caché inmediatamente (0ms lag)
+        cargarDesdeCache()
+
+        // 2. Refrescar desde el backend en segundo plano
+        cargarDatosDelBackend()
     }
 
     private fun initViews() {
-        // Views principales
         bottomNav = findViewById(R.id.bottomNavigation)
         btnBackPerfil = findViewById(R.id.btnBackPerfil)
         tvNombreUsuario = findViewById(R.id.tvNombreUsuario)
         btnEditarPerfil = findViewById(R.id.btnEditarPerfil)
         btnCerrarSesion = findViewById(R.id.btnCerrarSesion)
+        btnCambiarPassword = findViewById(R.id.btnCambiarPassword)
         btnGuardarCambios = findViewById(R.id.btnGuardarCambios)
 
-        // EditTexts
         editEdad = findViewById(R.id.editEdad)
         editAltura = findViewById(R.id.editAltura)
-        editPesoObjetivo = findViewById(R.id.editPesoObjetivo)
+        editPesoActual = findViewById(R.id.editPesoObjetivo)
 
-        // Género
         tvGenero = findViewById(R.id.tvGenero)
         llGeneroEdicion = findViewById(R.id.llGeneroEdicion)
         chipGeneroFemenino = findViewById(R.id.chipGeneroFemenino)
         chipGeneroMasculino = findViewById(R.id.chipGeneroMasculino)
 
-        // Chips de objetivo
         chipMantenerPeso = findViewById(R.id.chipMantenerPeso)
         chipAumentarMusculo = findViewById(R.id.chipAumentarMusculo)
         chipSubirPeso = findViewById(R.id.chipSubirPeso)
         chipBajarPeso = findViewById(R.id.chipBajarPeso)
+
+        tvMetaDiariaKcal = findViewById(R.id.tvMetaDiariaKcal)
+        btnCalcularMetaDiaria = findViewById(R.id.btnCalcularMetaDiaria)
+    }
+
+    // ✅ Configurar filtros para evitar decimales en altura
+    private fun setupInputFilters() {
+        // Solo números enteros para altura (sin decimales)
+        editAltura.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
+
+        // Opcional: también para edad y peso si quieres solo enteros
+        editEdad.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
+        editPesoActual.keyListener = android.text.method.DigitsKeyListener.getInstance("0123456789")
+    }
+
+    private fun cargarDesdeCache() {
+        val cachedUser = DataCacheManager.getCache(this, CACHE_KEY, User::class.java)
+        cachedUser?.let {
+            Log.d(TAG, "Mostrando perfil desde caché")
+            renderizarUsuario(it)
+        }
+    }
+
+    private fun cargarDatosDelBackend() {
+        val token = TokenManager.getToken(this) ?: return
+
+        lifecycleScope.launch {
+            try {
+                // No pasar fecha, el backend usa la fecha actual
+                val response = repository.getProfile(token) // Sin fecha
+
+                if (response.isSuccessful && response.body() != null) {
+                    val usuario = response.body()!!
+
+                    // Actualizar caché
+                    DataCacheManager.saveCache(this@PerfilActivity, CACHE_KEY, usuario)
+
+                    renderizarUsuario(usuario)
+                }
+            } catch (error: Exception) {
+                if (error !is CancellationException) {
+                    Log.e(TAG, "Error de red al cargar perfil", error)
+                }
+            }
+        }
+    }
+
+    private fun renderizarUsuario(usuario: User) {
+        tvNombreUsuario.text = usuario.fullName
+        editEdad.setText(usuario.age.toString())
+        editAltura.setText(usuario.heightCm.toString())
+        editPesoActual.setText(usuario.currentWeightLb.toString())
+
+        generoActual = usuario.gender
+        actividadFisicaActual = usuario.physicalActivity
+        objetivoActual = usuario.personalGoal
+        dailyCalorieGoalKcal = usuario.dailyCalorieGoalKcal.toInt()
+
+        tvGenero.text = mapearGeneroAUI(generoActual)
+        tvMetaDiariaKcal?.text = dailyCalorieGoalKcal.toString()
+
+        actualizarChipSeleccionado()
+        actualizarChipGenero()
+    }
+
+    private fun mapearGeneroAUI(genero: String): String {
+        return when (genero.lowercase()) {
+            "masculino" -> "Masculino"
+            "femenino" -> "Femenino"
+            else -> genero
+        }
+    }
+
+    private fun actualizarChipGenero() {
+        if (generoActual.lowercase() == "femenino") {
+            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
+            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
+        } else if (generoActual.isNotEmpty()) {
+            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
+            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
+        }
+    }
+
+    private fun actualizarChipSeleccionado() {
+        val chips = mapOf(
+            chipMantenerPeso to "mantener peso",
+            chipAumentarMusculo to "aumentar musculo",
+            chipSubirPeso to "subir peso",
+            chipBajarPeso to "bajar peso"
+        )
+        chips.forEach { (chip, texto) ->
+            chip.background = if (texto == objetivoActual.lowercase()) {
+                ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
+            } else {
+                ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
+            }
+        }
     }
 
     private fun setupNavigation() {
         bottomNav.selectedItemId = R.id.nav_perfil
-
         bottomNav.setOnItemSelectedListener {
             when (it.itemId) {
                 R.id.nav_inicio -> {
@@ -112,131 +233,53 @@ class PerfilActivity : AppCompatActivity() {
     }
 
     private fun setupListeners() {
-        btnBackPerfil.setOnClickListener {
-            finish()
-        }
-
+        btnBackPerfil.setOnClickListener { finish() }
         btnEditarPerfil.setOnClickListener {
-            if (isEditing) {
-                cancelarEdicion()
-            } else {
-                entrarModoEdicion()
-            }
+            if (isEditing) cancelarEdicion() else entrarModoEdicion()
         }
-
-        btnGuardarCambios.setOnClickListener {
-            guardarCambios()
+        btnGuardarCambios.setOnClickListener { guardarCambios() }
+        btnCambiarPassword.setOnClickListener {
+            startActivity(Intent(this, CambiarPasswordActivity::class.java))
         }
-
         btnCerrarSesion.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finishAffinity()
+            TokenManager.logout(this)
+            DataCacheManager.clearCache(this) // Limpiar caché al cerrar sesión
+            irALogin()
         }
+        btnCalcularMetaDiaria?.setOnClickListener { calcularMetaDiaria() }
     }
 
     private fun setupGeneroChips() {
-        chipGeneroFemenino.setOnClickListener {
-            if (isEditing) {
-                seleccionarGenero("Femenino")
-            }
-        }
-
-        chipGeneroMasculino.setOnClickListener {
-            if (isEditing) {
-                seleccionarGenero("Masculino")
-            }
-        }
+        chipGeneroFemenino.setOnClickListener { if (isEditing) seleccionarGenero("femenino") }
+        chipGeneroMasculino.setOnClickListener { if (isEditing) seleccionarGenero("masculino") }
     }
 
     private fun seleccionarGenero(genero: String) {
         generoActual = genero
-
-        if (genero == "Femenino") {
-            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-        } else {
-            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-        }
-    }
-
-    private fun setupChipListeners() {
-        chipMantenerPeso.setOnClickListener {
-            if (isEditing) seleccionarChip(chipMantenerPeso, "Mantener Peso")
-        }
-        chipAumentarMusculo.setOnClickListener {
-            if (isEditing) seleccionarChip(chipAumentarMusculo, "Aumentar músculo")
-        }
-        chipSubirPeso.setOnClickListener {
-            if (isEditing) seleccionarChip(chipSubirPeso, "Subir Peso")
-        }
-        chipBajarPeso.setOnClickListener {
-            if (isEditing) seleccionarChip(chipBajarPeso, "Bajar Peso")
-        }
-    }
-
-    private fun seleccionarChip(chipSeleccionado: TextView, objetivo: String) {
-        val chips = listOf(chipMantenerPeso, chipAumentarMusculo, chipSubirPeso, chipBajarPeso)
-        chips.forEach { chip ->
-            chip.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-        }
-        chipSeleccionado.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-        objetivoActual = objetivo
-    }
-
-    private fun cargarDatosPerfil() {
-        tvNombreUsuario.text = "Usuario NutriVision"
-        editEdad.setText(edadActual)
-        editAltura.setText(alturaActual)
-        editPesoObjetivo.setText(pesoObjetivoActual)
-        tvGenero.text = generoActual
-
-        actualizarChipSeleccionado()
         actualizarChipGenero()
     }
 
-    private fun actualizarChipGenero() {
-        if (generoActual == "Femenino") {
-            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-        } else {
-            chipGeneroFemenino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-            chipGeneroMasculino.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-        }
+    private fun setupChipListeners() {
+        chipMantenerPeso.setOnClickListener { if (isEditing) seleccionarChip(chipMantenerPeso, "mantener peso") }
+        chipAumentarMusculo.setOnClickListener { if (isEditing) seleccionarChip(chipAumentarMusculo, "aumentar musculo") }
+        chipSubirPeso.setOnClickListener { if (isEditing) seleccionarChip(chipSubirPeso, "subir peso") }
+        chipBajarPeso.setOnClickListener { if (isEditing) seleccionarChip(chipBajarPeso, "bajar peso") }
     }
 
-    private fun actualizarChipSeleccionado() {
-        val chips = mapOf(
-            chipMantenerPeso to "Mantener Peso",
-            chipAumentarMusculo to "Aumentar músculo",
-            chipSubirPeso to "Subir Peso",
-            chipBajarPeso to "Bajar Peso"
-        )
-        chips.forEach { (chip, texto) ->
-            chip.background = if (texto == objetivoActual) {
-                ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-            } else {
-                ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-            }
-        }
+    private fun seleccionarChip(chipSeleccionado: TextView, objetivo: String) {
+        objetivoActual = objetivo
+        actualizarChipSeleccionado()
     }
 
     private fun entrarModoEdicion() {
         isEditing = true
         btnEditarPerfil.text = "Cancelar"
         btnEditarPerfil.setTextColor(ContextCompat.getColor(this, android.R.color.holo_red_dark))
-
-        // Habilitar EditTexts con borde
         habilitarEditText(editEdad)
         habilitarEditText(editAltura)
-        habilitarEditText(editPesoObjetivo)
-
-        // Ocultar TextView, mostrar chips de género (vertical)
+        habilitarEditText(editPesoActual)
         tvGenero.visibility = View.GONE
         llGeneroEdicion.visibility = View.VISIBLE
-
-        // Mostrar botón guardar
         btnGuardarCambios.visibility = View.VISIBLE
     }
 
@@ -244,18 +287,12 @@ class PerfilActivity : AppCompatActivity() {
         editText.isEnabled = true
         editText.isFocusable = true
         editText.isFocusableInTouchMode = true
-
         val borderDrawable = android.graphics.drawable.GradientDrawable().apply {
             setColor(ContextCompat.getColor(this@PerfilActivity, R.color.card_background))
             setStroke(dpToPx(1), ContextCompat.getColor(this@PerfilActivity, R.color.gris_claro))
             cornerRadius = dpToPx(8).toFloat()
         }
-
         editText.background = borderDrawable
-
-        editText.setTextColor(ContextCompat.getColor(this, R.color.black))
-        editText.setHintTextColor(ContextCompat.getColor(this, R.color.gray))
-
         editText.setPadding(dpToPx(12), dpToPx(8), dpToPx(12), dpToPx(8))
     }
 
@@ -265,66 +302,137 @@ class PerfilActivity : AppCompatActivity() {
         editText.isFocusableInTouchMode = false
         editText.background = null
         editText.setPadding(0, 0, 0, 0)
-        editText.error = null
     }
 
+    // ✅ VALIDACIÓN MEJORADA - SIN DECIMALES EN ALTURA
     private fun guardarCambios() {
         val nuevaEdad = editEdad.text.toString().trim()
         val nuevaAltura = editAltura.text.toString().trim()
-        val nuevoPesoObjetivo = editPesoObjetivo.text.toString().trim()
+        val nuevoPeso = editPesoActual.text.toString().trim()
 
         var isValid = true
 
-        // Validar edad
+        // Validación de edad
         if (nuevaEdad.isEmpty()) {
-            editEdad.error = "Edad requerida"
-            isValid = false
-        } else if (nuevaEdad.toIntOrNull() == null) {
-            editEdad.error = "Número válido"
-            isValid = false
-        } else if (nuevaEdad.toInt() < 15 || nuevaEdad.toInt() > 120) {
-            editEdad.error = "15-120 años"
+            mostrarToastError("La edad es requerida")
             isValid = false
         } else {
-            editEdad.error = null
+            try {
+                val edadInt = nuevaEdad.toInt()
+                if (edadInt < 1 || edadInt > 120) {
+                    mostrarToastError("Edad inválida (1-120 años)")
+                    isValid = false
+                }
+            } catch (e: NumberFormatException) {
+                mostrarToastError("Ingresa una edad válida")
+                isValid = false
+            }
         }
 
-        // Validar altura
+        // ✅ VALIDACIÓN DE ALTURA - SIN DECIMALES
         if (nuevaAltura.isEmpty()) {
-            editAltura.error = "Altura requerida"
-            isValid = false
-        } else if (nuevaAltura.toDoubleOrNull() == null) {
-            editAltura.error = "Número válido"
-            isValid = false
-        } else if (nuevaAltura.toDouble() < 50 || nuevaAltura.toDouble() > 250) {
-            editAltura.error = "50-250 cm"
+            mostrarToastError("La altura es requerida")
             isValid = false
         } else {
-            editAltura.error = null
+            // Verificar si contiene punto o coma (decimales)
+            if (nuevaAltura.contains(".") || nuevaAltura.contains(",")) {
+                mostrarToastError("No se aceptan decimales en altura. Usa centímetros (ej: 170)")
+                isValid = false
+            } else {
+                try {
+                    val alturaInt = nuevaAltura.toInt()
+                    if (alturaInt < 50 || alturaInt > 300) {
+                        mostrarToastError("Altura inválida (50-300 cm)")
+                        isValid = false
+                    }
+                } catch (e: NumberFormatException) {
+                    mostrarToastError("Ingresa una altura válida")
+                    isValid = false
+                }
+            }
         }
 
-        // Validar peso objetivo
-        if (nuevoPesoObjetivo.isEmpty()) {
-            editPesoObjetivo.error = "Peso requerido"
-            isValid = false
-        } else if (nuevoPesoObjetivo.toDoubleOrNull() == null) {
-            editPesoObjetivo.error = "Número válido"
-            isValid = false
-        } else if (nuevoPesoObjetivo.toDouble() < 20 || nuevoPesoObjetivo.toDouble() > 500) {
-            editPesoObjetivo.error = "20-500 lb"
+        // Validación de peso
+        if (nuevoPeso.isEmpty()) {
+            mostrarToastError("El peso es requerido")
             isValid = false
         } else {
-            editPesoObjetivo.error = null
+            try {
+                val pesoInt = nuevoPeso.toInt()
+                if (pesoInt < 20 || pesoInt > 500) {
+                    mostrarToastError("Peso inválido (20-500 lb)")
+                    isValid = false
+                }
+            } catch (e: NumberFormatException) {
+                mostrarToastError("Ingresa un peso válido")
+                isValid = false
+            }
         }
 
         if (isValid) {
-            // Actualizar valores
-            edadActual = nuevaEdad
-            alturaActual = nuevaAltura
-            pesoObjetivoActual = nuevoPesoObjetivo
+            val edadInt = nuevaEdad.toInt()
+            val alturaInt = nuevaAltura.toInt()
+            val pesoInt = nuevoPeso.toInt()
+            guardarCambiosEnBackend(edadInt, alturaInt, pesoInt)
+        }
+    }
 
-            salirModoEdicion()
-            cargarDatosPerfil()
+    private fun guardarCambiosEnBackend(edad: Int, altura: Int, peso: Int) {
+        val token = TokenManager.getToken(this)
+
+        if (token.isNullOrEmpty()) {
+            mostrarToastError("Sesión expirada. Inicia sesión nuevamente.")
+            irALogin()
+            return
+        }
+
+        btnGuardarCambios.isEnabled = false
+        btnGuardarCambios.text = "Guardando..."
+
+        lifecycleScope.launch {
+            try {
+                val updateRequest = UpdateUserRequest(
+                    age = edad,
+                    heightCm = altura,
+                    currentWeightLb = peso,
+                    gender = generoActual,
+                    physicalActivity = actividadFisicaActual,
+                    personalGoal = objetivoActual
+                )
+
+                val response = repository.updateProfile(token, updateRequest)
+
+                if (response.isSuccessful && response.body() != null) {
+                    val userUpdated = response.body()!!
+                    DataCacheManager.saveCache(this@PerfilActivity, CACHE_KEY, userUpdated)
+                    salirModoEdicion()
+                    renderizarUsuario(userUpdated)
+                    mostrarToastExito("Perfil actualizado")
+                } else {
+                    val errorBody = response.errorBody()?.string() ?: "Error desconocido"
+                    Log.e(TAG, "Error al actualizar perfil: ${response.code()} - $errorBody")
+
+                    val mensaje = when (response.code()) {
+                        401 -> "Sesión expirada. Inicia sesión nuevamente."
+                        404 -> "Usuario no encontrado. Inicia sesión de nuevo."
+                        else -> "Error al actualizar perfil"
+                    }
+                    mostrarToastError(mensaje)
+
+                    if (response.code() == 401 || response.code() == 404) {
+                        TokenManager.logout(this@PerfilActivity)
+                        irALogin()
+                    }
+                }
+            } catch (error: Exception) {
+                if (error !is CancellationException) {
+                    Log.e(TAG, "Excepción al actualizar perfil", error)
+                    mostrarToastError("Error: ${error.message}")
+                }
+            } finally {
+                btnGuardarCambios.isEnabled = true
+                btnGuardarCambios.text = "Guardar Cambios"
+            }
         }
     }
 
@@ -332,26 +440,108 @@ class PerfilActivity : AppCompatActivity() {
         isEditing = false
         btnEditarPerfil.text = "✎ Editar"
         btnEditarPerfil.setTextColor(ContextCompat.getColor(this, R.color.success_green))
-
-        // Deshabilitar EditTexts
         deshabilitarEditText(editEdad)
         deshabilitarEditText(editAltura)
-        deshabilitarEditText(editPesoObjetivo)
-
-        // Ocultar chips, mostrar TextView de género
+        deshabilitarEditText(editPesoActual)
         tvGenero.visibility = View.VISIBLE
         llGeneroEdicion.visibility = View.GONE
-
-        // Ocultar botón guardar
         btnGuardarCambios.visibility = View.GONE
     }
 
     private fun cancelarEdicion() {
         salirModoEdicion()
-        cargarDatosPerfil()
+        cargarDesdeCache()
     }
 
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
+    private fun dpToPx(dp: Int): Int = (dp * resources.displayMetrics.density).toInt()
+
+    private fun irALogin() {
+        val intent = Intent(this, LoginActivity::class.java)
+        startActivity(intent)
+        finishAffinity()
+    }
+
+    // Toast personalizado para éxito (verde)
+    @Suppress("DEPRECATION")
+    private fun mostrarToastExito(mensaje: String) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, R.color.success_green))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
+    }
+
+    // Toast personalizado para error (rojo)
+    @Suppress("DEPRECATION")
+    private fun mostrarToastError(mensaje: String) {
+        val layout = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(60, 20, 60, 20)
+        }
+        val background = android.graphics.drawable.GradientDrawable().apply {
+            setColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.holo_red_dark))
+            cornerRadius = 32f
+        }
+        layout.background = background
+        val textView = TextView(this).apply {
+            text = mensaje
+            setTextColor(ContextCompat.getColor(this@PerfilActivity, android.R.color.white))
+            textSize = 14f
+            setTypeface(Typeface.DEFAULT_BOLD)
+            gravity = Gravity.CENTER
+        }
+        layout.addView(textView)
+        val toast = Toast(applicationContext)
+        toast.duration = Toast.LENGTH_SHORT
+        toast.view = layout
+        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
+        toast.show()
+    }
+
+    private fun calcularMetaDiaria() {
+        val token = TokenManager.getToken(this) ?: return
+        btnCalcularMetaDiaria?.isEnabled = false
+        btnCalcularMetaDiaria?.text = "Calculando..."
+
+        lifecycleScope.launch {
+            try {
+                val response = repository.calculateDailyGoal(token)
+                if (response.isSuccessful && response.body() != null) {
+                    val newGoal = response.body()!!.dailyCalorieGoalKcal ?: 0
+                    tvMetaDiariaKcal?.text = newGoal.toString()
+
+                    // Actualizar caché forzosamente tras el cálculo
+                    cargarDatosDelBackend()
+
+                    mostrarToastExito("Meta calculada: $newGoal kcal")
+                }
+            } catch (error: Exception) {
+                if (error !is CancellationException) {
+                    mostrarToastError("Error: ${error.message}")
+                }
+            } finally {
+                btnCalcularMetaDiaria?.isEnabled = true
+                btnCalcularMetaDiaria?.text = "Calcular Meta"
+            }
+        }
     }
 }

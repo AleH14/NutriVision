@@ -9,7 +9,6 @@
 
     <!-- CONTENIDO CON SCROLL -->
 
-
     <!-- Barra de navegacion-->
     <ScrollView
         android:layout_width="0dp"
@@ -26,261 +25,263 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-
-
-            <TextView
-                android:id="@+id/textView3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="140dp"
-                android:fontFamily="@font/montserrat"
-                android:text="Hoy es un gran día para comer sano"
-                android:textColor="@color/black"
-                android:textSize="14sp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.202"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <TextView
-                android:id="@+id/textView"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="104dp"
-                android:fontFamily="@font/montserrat"
-                android:text="¡Hola Usuario!"
-                android:textColor="@color/black"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.127"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-            <!--Card view de meta diaria-->
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_calorias"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginTop="24dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/card_background"
-                app:layout_constraintTop_toBottomOf="@id/textView3"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
+                <!-- LOGOS -->
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:id="@+id/layout_logos"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_border_orange"
-                    android:padding="16dp">
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="24dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
 
-                    <!-- Título -->
-                    <TextView
-                        android:id="@+id/tv_meta_diaria"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Meta Diaria"
-                        android:textSize="16sp"
-                        android:textColor="@color/black"
-                        android:fontFamily="@font/montserrat"/>
+                    <ImageView
+                        android:id="@+id/ivLogo"
+                        android:layout_width="140dp"
+                        android:layout_height="90dp"
+                        android:src="@drawable/logo"
+                        android:scaleType="centerInside"
+                        android:adjustViewBounds="true"
+                        android:alpha="0.95"
+                        android:contentDescription="logo_imagen"/>
 
-                    <!-- Fila de calorías + porcentaje -->
-                    <androidx.constraintlayout.widget.ConstraintLayout
+                    <ImageView
+                        android:id="@+id/ivLogoLetra"
+                        android:layout_width="210dp"
+                        android:layout_height="90dp"
+                        android:src="@drawable/logo_letra"
+                        android:scaleType="centerInside"
+                        android:adjustViewBounds="true"
+                        android:layout_marginStart="-25dp"
+                        android:contentDescription="logo_letra"/>
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/textView3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toBottomOf="@id/tvSaludo"
+                    android:fontFamily="@font/montserrat"
+                    android:text="Hoy es un gran día para comer sano"
+                    android:textColor="@color/black"
+                    android:textSize="14sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.202"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <!--Card view de meta diaria-->
+
+                <TextView
+                    android:id="@+id/tvSaludo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toBottomOf="@id/layout_logos"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="@font/montserrat"
+                    android:text="¡Hola!"
+                    android:textColor="@color/black"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintHorizontal_bias="0.127"
+                    app:layout_constraintStart_toStartOf="parent" />
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/card_calorias"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="24dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    app:cardBackgroundColor="@color/card_background"
+                    app:layout_constraintTop_toBottomOf="@id/textView3"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp">
+                        android:orientation="vertical"
+                        android:background="@drawable/card_border_orange"
+                        android:padding="16dp">
 
-                        <!-- Calorías consumidas -->
+                        <!-- Título -->
                         <TextView
-                            android:id="@+id/tv_calorias_consumidas"
+                            android:id="@+id/tvMetaDiaria"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1,850 /"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
+                            android:text="Meta Diaria"
+                            android:textSize="16sp"
+                            android:textColor="@color/black"
+                            android:fontFamily="@font/montserrat"/>
+
+                        <!-- Fila de calorías + porcentaje -->
+                        <androidx.constraintlayout.widget.ConstraintLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp">
+
+                            <!-- Calorías consumidas -->
+                            <TextView
+                                android:id="@+id/tv_calorias_consumidas"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="-- /"
+                                android:textSize="22sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/black"
+                                android:fontFamily="@font/montserrat"
+                                app:layout_constraintStart_toStartOf="parent"
+                                app:layout_constraintTop_toTopOf="parent"
+                                app:layout_constraintBottom_toBottomOf="parent"/>
+
+                            <!-- Calorías meta -->
+                            <TextView
+                                android:id="@+id/tv_calorias_meta"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text=" -- kcal"
+                                android:textSize="15sp"
+                                android:textColor="@color/gris_claro"
+                                android:fontFamily="@font/montserrat"
+                                android:fontWeight="600"
+                                android:layout_marginStart="4dp"
+                                app:layout_constraintStart_toEndOf="@id/tv_calorias_consumidas"
+                                app:layout_constraintTop_toTopOf="@id/tv_calorias_consumidas"
+                                app:layout_constraintBottom_toBottomOf="@id/tv_calorias_consumidas"/>
+
+                            <!-- Porcentaje -->
+                            <TextView
+                                android:id="@+id/tv_porcentaje"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="--%"
+                                android:textStyle="bold"
+                                android:textSize="16sp"
+                                android:textColor="#F86E00"
+                                android:fontFamily="@font/montserrat"
+                                app:layout_constraintEnd_toEndOf="parent"
+                                app:layout_constraintTop_toTopOf="@id/tv_calorias_consumidas"
+                                app:layout_constraintBottom_toBottomOf="@id/tv_calorias_consumidas"/>
+
+                        </androidx.constraintlayout.widget.ConstraintLayout>
+                        <!-- Barra de progreso personalizada -->
+                        <ProgressBar
+                            android:id="@+id/progress_calorias"
+                            style="@android:style/Widget.ProgressBar.Horizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="16dp"
+                            android:progress="0"
+                            android:max="100"
+                            android:progressDrawable="@drawable/progress_orange"
+                            android:layout_marginTop="8dp"
+                            android:indeterminate="false"
+                            android:clipToOutline="true"/>
+
+
+                        <!-- Porcentaje restante con icono -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical">
+
+                            <!-- Icono alerta -->
+                            <ImageView
+                                android:id="@+id/icon_kcal"
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/alert"
+                                android:contentDescription="Kcal"
+                                app:tint="@color/gris_claro"
+                                android:layout_marginEnd="4dp"/>
+
+                            <!-- Texto restante -->
+                            <TextView
+                                android:id="@+id/tv_restante"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Cargando..."
+                                android:textSize="14sp"
+                                android:textColor="@color/gris_claro"
+                                android:fontFamily="@font/montserrat"
+                                android:fontWeight="600"/>
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </androidx.cardview.widget.CardView>
+                <!-- card del boton de camara-->
+
+                <androidx.cardview.widget.CardView
+                    android:id="@+id/btn_camara"
+                    android:layout_width="0dp"
+                    android:layout_height="150dp"
+                    android:layout_marginStart="16dp"
+                    android:layout_marginEnd="16dp"
+                    android:layout_marginTop="16dp"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="4dp"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
+                    app:cardBackgroundColor="@color/card_green"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/card_calorias">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:background="@drawable/card_border_green"
+                        android:gravity="center"
+                        android:padding="16dp">
+
+                        <!-- Icono grande en el medio -->
+                        <ImageView
+                            android:id="@+id/btn_icon"
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:src="@drawable/camera_filled"
+                            android:contentDescription="Icono botón"/>
+
+
+                        <TextView
+                            android:id="@+id/btn_text"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Escanear Comida"
+                            android:textSize="16sp"
                             android:textColor="@color/black"
                             android:fontFamily="@font/montserrat"
-                            app:layout_constraintStart_toStartOf="parent"
-                            app:layout_constraintTop_toTopOf="parent"
-                            app:layout_constraintBottom_toBottomOf="parent"/>
-
-                        <!-- Calorías meta -->
+                            android:fontWeight="700"
+                            android:textStyle="bold"
+                            android:layout_marginTop="8dp"
+                            android:gravity="center"/>
                         <TextView
-                            android:id="@+id/tv_calorias_meta"
+                            android:id="@+id/btn_text2"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text=" 2,500 kcal"
-                            android:textSize="15sp"
+                            android:text="Toma una fotografía de tu plato de comida"
+                            android:textSize="12sp"
                             android:textColor="@color/gris_claro"
                             android:fontFamily="@font/montserrat"
                             android:fontWeight="600"
-                            android:layout_marginStart="4dp"
-                            app:layout_constraintStart_toEndOf="@id/tv_calorias_consumidas"
-                            app:layout_constraintTop_toTopOf="@id/tv_calorias_consumidas"
-                            app:layout_constraintBottom_toBottomOf="@id/tv_calorias_consumidas"/>
-
-                        <!-- Porcentaje -->
-                        <TextView
-                            android:id="@+id/tv_porcentaje"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="74%"
-                            android:textStyle="bold"
-                            android:textSize="16sp"
-                            android:textColor="#F86E00"
-                            android:fontFamily="@font/montserrat"
-                            app:layout_constraintEnd_toEndOf="parent"
-                            app:layout_constraintTop_toTopOf="@id/tv_calorias_consumidas"
-                            app:layout_constraintBottom_toBottomOf="@id/tv_calorias_consumidas"/>
-
-                    </androidx.constraintlayout.widget.ConstraintLayout>
-                    <!-- Barra de progreso personalizada -->
-                    <ProgressBar
-                        android:id="@+id/progress_calorias"
-                        style="@android:style/Widget.ProgressBar.Horizontal"
-                        android:layout_width="match_parent"
-                        android:layout_height="16dp"
-                        android:progress="74"
-                        android:max="100"
-                        android:progressDrawable="@drawable/progress_orange"
-                        android:layout_marginTop="8dp"
-                        android:indeterminate="false"
-                        android:clipToOutline="true"/>
-
-
-                    <!-- Porcentaje restante con icono -->
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center_vertical">
-
-                        <!-- Icono alerta -->
-                        <ImageView
-                            android:id="@+id/icon_kcal"
-                            android:layout_width="16dp"
-                            android:layout_height="16dp"
-                            android:src="@drawable/alert"
-                          android:contentDescription="Kcal"
-                         app:tint="@color/gris_claro"
-                          android:layout_marginEnd="4dp"/>
-
-                        <!-- Texto restante -->
-                        <TextView
-                            android:id="@+id/tv_restante"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Te quedan 650 kcal para completar el día"
-                            android:textSize="14sp"
-                            android:textColor="@color/gris_claro"
-                            android:fontFamily="@font/montserrat"
-                            android:fontWeight="600"/>
+                            android:layout_marginTop="8dp"
+                            android:gravity="center"/>
                     </LinearLayout>
+                </androidx.cardview.widget.CardView>
 
-
-
-
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-            <!-- card del boton de camara-->
-
-            <androidx.cardview.widget.CardView
-                android:id="@+id/btn_camara"
-                android:layout_width="0dp"
-                android:layout_height="150dp"
-                android:layout_marginStart="16dp"
-                android:layout_marginEnd="16dp"
-                android:layout_marginTop="16dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
-                app:cardBackgroundColor="@color/card_green"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/card_calorias">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:background="@drawable/card_border_green"
-                    android:gravity="center"
-                    android:padding="16dp">
-
-                    <!-- Icono grande en el medio -->
-                    <ImageView
-                        android:id="@+id/btn_icon"
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:src="@drawable/camera_filled"
-                        android:contentDescription="Icono botón"/>
-
-
-                    <TextView
-                        android:id="@+id/btn_text"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Escanear Comida"
-                        android:textSize="16sp"
-                        android:textColor="@color/black"
-                        android:fontFamily="@font/montserrat"
-                        android:fontWeight="700"
-                        android:textStyle="bold"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"/>
-                    <TextView
-                        android:id="@+id/btn_text2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Toma una fotografía de tu plato de comida"
-                        android:textSize="12sp"
-                        android:textColor="@color/gris_claro"
-                        android:fontFamily="@font/montserrat"
-                        android:fontWeight="600"
-                        android:layout_marginTop="8dp"
-                        android:gravity="center"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <ImageView
-                android:id="@+id/imageView"
-                android:layout_width="108dp"
-                android:layout_height="66dp"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.201"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintVertical_bias="0.055"
-                app:srcCompat="@drawable/logo" />
-
-            <ImageView
-                android:id="@+id/imageView2"
-                android:layout_width="210dp"
-                android:layout_height="53dp"
-
-                android:layout_marginTop="36dp"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.616"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                app:srcCompat="@drawable/logo_letra" />
-
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
             <LinearLayout
                 android:id="@+id/resumen_nutricional_layout"
@@ -288,14 +289,10 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp"
-                android:paddingStart="16dp"
-                android:layout_marginTop="7dp"
-                app:layout_constraintTop_toBottomOf="@id/btn_camara"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent">
-
+                android:layout_marginTop="7dp">
 
                 <TextView
+                    android:id="@+id/tvCaloriasHoy"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Resumen nutricional de Hoy"
@@ -315,7 +312,7 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="600"
+                        android:layout_weight="1"
                         android:text="Proteínas"
                         android:fontFamily="@font/montserrat"
                         android:textSize="14sp"
@@ -323,21 +320,23 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvProteinasHoy"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/montserrat"
-                        android:text="85 / 120 g"
+                        android:text="-- / -- g"
                         android:textSize="14sp"
                         android:textColor="@color/black"/>
                 </LinearLayout>
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_proteinas"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
-                    android:max="120"
-                    android:progress="85"
+                    android:max="100"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_yellow"/>
 
@@ -352,7 +351,7 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="600"
+                        android:layout_weight="1"
                         android:text="Carbohidratos"
                         android:fontFamily="@font/montserrat"
                         android:textSize="14sp"
@@ -360,21 +359,23 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvCarbsHoy"
                         android:fontFamily="@font/montserrat"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="85 / 120 g"
+                        android:text="-- / -- g"
                         android:textSize="14sp"
                         android:textColor="@color/black"/>
                 </LinearLayout>
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_carbos"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
-                    android:max="120"
-                    android:progress="85"
+                    android:max="100"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_cyan"/>
 
@@ -389,7 +390,7 @@
                     <TextView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_weight="600"
+                        android:layout_weight="1"
                         android:fontFamily="@font/montserrat"
                         android:text="Grasas"
                         android:textSize="14sp"
@@ -397,27 +398,28 @@
 
                     <!-- Cantidad a la derecha -->
                     <TextView
+                        android:id="@+id/tvGrasasHoy"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/montserrat"
-                        android:text="85 / 120 g"
+                        android:text="-- / -- g"
                         android:textSize="14sp"
                         android:textColor="@color/black"/>
                 </LinearLayout>
 
                 <!-- Barra de progreso debajo -->
                 <ProgressBar
+                    android:id="@+id/progress_grasas"
                     style="@android:style/Widget.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
-                    android:max="120"
-                    android:progress="85"
+                    android:max="100"
+                    android:progress="0"
                     android:layout_marginBottom="8dp"
                     android:progressDrawable="@drawable/progress_purple"/>
             </LinearLayout>
 
         </LinearLayout>
-
 
     </ScrollView>
 
@@ -426,7 +428,6 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/white"
-
         app:menu="@menu/bottom_menu"
         app:itemIconTint="@color/nav_icon_color"
         app:itemTextColor="@color/nav_icon_color"
@@ -436,9 +437,5 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
-
-
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

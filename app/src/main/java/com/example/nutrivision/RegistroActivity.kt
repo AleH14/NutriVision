@@ -2,14 +2,8 @@ package com.example.nutrivision
 
 import android.content.Intent
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
-import android.view.Gravity
-import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -52,7 +46,7 @@ class RegistroActivity : AppCompatActivity() {
 
     private fun setupListeners() {
         btnRegistrarse.setOnClickListener {
-            realizarRegistro()
+            irADatosIniciales()
         }
 
         btnBackRegistro.setOnClickListener {
@@ -62,12 +56,11 @@ class RegistroActivity : AppCompatActivity() {
         btnIrLogin.setOnClickListener {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
-            overridePendingTransition(0, 0)
             finish()
         }
     }
 
-    private fun realizarRegistro() {
+    private fun irADatosIniciales() {
         val nombre = txtNombre.text.toString().trim()
         val email = txtEmail.text.toString().trim()
         val password = txtPassword.text.toString().trim()
@@ -78,99 +71,30 @@ class RegistroActivity : AppCompatActivity() {
         if (nombre.isEmpty()) {
             lblNombre.error = "El nombre es requerido"
             isValid = false
-        } else {
-            lblNombre.error = null
-        }
+        } else lblNombre.error = null
 
         if (email.isEmpty()) {
             lblEmail.error = "El correo es requerido"
             isValid = false
-        } else if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            lblEmail.error = "Correo electrónico inválido"
-            isValid = false
-        } else {
-            lblEmail.error = null
-        }
+        } else lblEmail.error = null
 
-        if (password.isEmpty()) {
-            lblPassword.error = "La contraseña es requerida"
+        if (password.isEmpty() || password.length < 6) {
+            lblPassword.error = "Contraseña inválida (mín. 6 caracteres)"
             isValid = false
-        } else if (password.length < 6) {
-            lblPassword.error = "La contraseña debe tener al menos 6 caracteres"
-            isValid = false
-        } else {
-            lblPassword.error = null
-        }
+        } else lblPassword.error = null
 
-        if (confirmPassword.isEmpty()) {
-            lblConfirmPassword.error = "Confirma tu contraseña"
-            isValid = false
-        } else if (password != confirmPassword) {
+        if (password != confirmPassword) {
             lblConfirmPassword.error = "Las contraseñas no coinciden"
             isValid = false
-        } else {
-            lblConfirmPassword.error = null
-        }
-
-        // Navegación a datos iniciales de usuario
+        } else lblConfirmPassword.error = null
 
         if (isValid) {
-            mostrarToastExitoso()
-
-            Handler(Looper.getMainLooper()).postDelayed({
-                val intent = Intent(this, DatosInicialesActivity::class.java)
-                startActivity(intent)
-                finish()
-            }, 1500)
+            // Pasamos los datos a la siguiente pantalla sin registrar todavía
+            val intent = Intent(this, DatosInicialesActivity::class.java)
+            intent.putExtra("EXTRA_NOMBRE", nombre)
+            intent.putExtra("EXTRA_EMAIL", email)
+            intent.putExtra("EXTRA_PASSWORD", password)
+            startActivity(intent)
         }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun mostrarToastExitoso() {
-
-        val layout = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(50, 30, 50, 30)
-            elevation = 12f
-        }
-
-        // Fondo
-        val background = android.graphics.drawable.GradientDrawable().apply {
-            setColor(ContextCompat.getColor(this@RegistroActivity, R.color.success_green))
-            cornerRadius = 100f
-        }
-        layout.background = background
-
-        // Icono check
-        val icon = TextView(this).apply {
-            text = "✔"
-            setTextColor(ContextCompat.getColor(this@RegistroActivity, android.R.color.white))
-            textSize = 18f
-            setPadding(0, 0, 20, 0)
-        }
-
-        // Texto principal
-        val textView = TextView(this).apply {
-            text = "Cuenta creada exitosamente"
-            setTextColor(ContextCompat.getColor(this@RegistroActivity, android.R.color.white))
-            textSize = 15f
-            setTypeface(android.graphics.Typeface.DEFAULT_BOLD)
-        }
-
-        layout.addView(icon)
-        layout.addView(textView)
-
-        val toast = Toast(applicationContext)
-        toast.duration = Toast.LENGTH_SHORT
-        toast.view = layout
-
-        // Posición tipo notificación flotante
-        toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 120)
-        toast.show()
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            toast.cancel()
-        }, 1200)
     }
 }

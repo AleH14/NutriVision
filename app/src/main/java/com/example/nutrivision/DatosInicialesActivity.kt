@@ -7,10 +7,17 @@ import android.os.Looper
 import android.view.Gravity
 import android.view.View
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
+import com.example.nutrivision.data.model.RegisterRequest
+import com.example.nutrivision.data.network.RetrofitClient
+import com.example.nutrivision.data.repository.NutriRepository
+import com.example.nutrivision.ui.viewmodel.AuthViewModel
+import com.example.nutrivision.ui.viewmodel.ViewModelFactory
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -36,18 +43,29 @@ class DatosInicialesActivity : AppCompatActivity() {
     private lateinit var btnObjetivoBajar: TextView
     private lateinit var btnGuardarPerfil: MaterialButton
     private lateinit var btnBackPerfil: TextView
+    private lateinit var progressBar: ProgressBar
 
     private var generoSeleccionado: String? = null
     private var actividadSeleccionada: String? = null
     private var objetivoSeleccionado: String? = null
 
+    private lateinit var authViewModel: AuthViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_datos_iniciales)
 
+        initViewModel()
         initViews()
         setupListeners()
         setupSelectionListeners()
+        observeViewModel()
+    }
+
+    private fun initViewModel() {
+        val repository = NutriRepository(RetrofitClient.instance)
+        val factory = ViewModelFactory(repository)
+        authViewModel = ViewModelProvider(this, factory)[AuthViewModel::class.java]
     }
 
     private fun initViews() {
@@ -70,6 +88,8 @@ class DatosInicialesActivity : AppCompatActivity() {
         btnObjetivoBajar = findViewById(R.id.btnObjetivoBajar)
         btnGuardarPerfil = findViewById(R.id.btnGuardarPerfil)
         btnBackPerfil = findViewById(R.id.btnBackPerfil)
+
+        progressBar = findViewById(R.id.progressBarDatos) ?: ProgressBar(this)
     }
 
     private fun setupListeners() {
@@ -78,54 +98,66 @@ class DatosInicialesActivity : AppCompatActivity() {
         }
 
         btnGuardarPerfil.setOnClickListener {
-            guardarPerfil()
+            validarYEnviar()
+        }
+    }
+
+    private fun observeViewModel() {
+        authViewModel.authResult.observe(this) { result ->
+            // Restaurar botón
+            btnGuardarPerfil.isEnabled = true
+            btnGuardarPerfil.text = "Guardar"
+
+            result.onSuccess { authResponse ->
+                // Guardar token
+                authResponse.token?.let { token ->
+                    TokenManager.saveToken(this@DatosInicialesActivity, token)
+                }
+
+                // Guardar info del usuario
+                authResponse.user?.let { user ->
+                    TokenManager.saveUserInfo(
+                        this@DatosInicialesActivity,
+                        user.id ?: "",
+                        user.email,
+                        user.fullName
+                    )
+                }
+
+                mostrarToastExitoso("✓ Registro completo. ¡Bienvenido!")
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val intent = Intent(this, InicioActivity::class.java)
+                    startActivity(intent)
+                    finishAffinity()
+                }, 1500)
+            }.onFailure { exception ->
+                mostrarToastError("Error al registrar: ${exception.message}")
+            }
+        }
+
+        authViewModel.isLoading.observe(this) { isLoading ->
+            if (isLoading) {
+                btnGuardarPerfil.isEnabled = false
+                btnGuardarPerfil.text = "Cargando..."
+            } else {
+                // No restaurar aquí porque se restaura en el resultado
+            }
         }
     }
 
     private fun setupSelectionListeners() {
-        // Género
-        btnGeneroMasculino.setOnClickListener {
-            seleccionarGenero("Masculino", btnGeneroMasculino, btnGeneroFemenino)
-        }
-        btnGeneroFemenino.setOnClickListener {
-            seleccionarGenero("Femenino", btnGeneroFemenino, btnGeneroMasculino)
-        }
+        btnGeneroMasculino.setOnClickListener { seleccionarGenero("masculino", btnGeneroMasculino, btnGeneroFemenino) }
+        btnGeneroFemenino.setOnClickListener { seleccionarGenero("femenino", btnGeneroFemenino, btnGeneroMasculino) }
 
-        // Actividad física
-        btnActividadSedentario.setOnClickListener {
-            seleccionarActividad("Sedentario", btnActividadSedentario,
-                listOf(btnActividadLigero, btnActividadModerado, btnActividadIntenso))
-        }
-        btnActividadLigero.setOnClickListener {
-            seleccionarActividad("Ligero", btnActividadLigero,
-                listOf(btnActividadSedentario, btnActividadModerado, btnActividadIntenso))
-        }
-        btnActividadModerado.setOnClickListener {
-            seleccionarActividad("Moderado", btnActividadModerado,
-                listOf(btnActividadSedentario, btnActividadLigero, btnActividadIntenso))
-        }
-        btnActividadIntenso.setOnClickListener {
-            seleccionarActividad("Intenso", btnActividadIntenso,
-                listOf(btnActividadSedentario, btnActividadLigero, btnActividadModerado))
-        }
+        btnActividadSedentario.setOnClickListener { seleccionarActividad("sedentario", btnActividadSedentario, listOf(btnActividadLigero, btnActividadModerado, btnActividadIntenso)) }
+        btnActividadLigero.setOnClickListener { seleccionarActividad("ligero", btnActividadLigero, listOf(btnActividadSedentario, btnActividadModerado, btnActividadIntenso)) }
+        btnActividadModerado.setOnClickListener { seleccionarActividad("moderado", btnActividadModerado, listOf(btnActividadSedentario, btnActividadLigero, btnActividadIntenso)) }
+        btnActividadIntenso.setOnClickListener { seleccionarActividad("intenso", btnActividadIntenso, listOf(btnActividadSedentario, btnActividadLigero, btnActividadModerado)) }
 
-        // Objetivo
-        btnObjetivoMantener.setOnClickListener {
-            seleccionarObjetivo("Mantener peso", btnObjetivoMantener,
-                listOf(btnObjetivoAumentar, btnObjetivoSubir, btnObjetivoBajar))
-        }
-        btnObjetivoAumentar.setOnClickListener {
-            seleccionarObjetivo("Aumentar músculo", btnObjetivoAumentar,
-                listOf(btnObjetivoMantener, btnObjetivoSubir, btnObjetivoBajar))
-        }
-        btnObjetivoSubir.setOnClickListener {
-            seleccionarObjetivo("Subir peso", btnObjetivoSubir,
-                listOf(btnObjetivoMantener, btnObjetivoAumentar, btnObjetivoBajar))
-        }
-        btnObjetivoBajar.setOnClickListener {
-            seleccionarObjetivo("Bajar peso", btnObjetivoBajar,
-                listOf(btnObjetivoMantener, btnObjetivoAumentar, btnObjetivoSubir))
-        }
+        btnObjetivoMantener.setOnClickListener { seleccionarObjetivo("mantener peso", btnObjetivoMantener, listOf(btnObjetivoAumentar, btnObjetivoSubir, btnObjetivoBajar)) }
+        btnObjetivoAumentar.setOnClickListener { seleccionarObjetivo("aumentar musculo", btnObjetivoAumentar, listOf(btnObjetivoMantener, btnObjetivoSubir, btnObjetivoBajar)) }
+        btnObjetivoSubir.setOnClickListener { seleccionarObjetivo("subir peso", btnObjetivoSubir, listOf(btnObjetivoMantener, btnObjetivoAumentar, btnObjetivoBajar)) }
+        btnObjetivoBajar.setOnClickListener { seleccionarObjetivo("bajar peso", btnObjetivoBajar, listOf(btnObjetivoMantener, btnObjetivoAumentar, btnObjetivoSubir)) }
     }
 
     private fun seleccionarGenero(genero: String, selected: TextView, other: TextView) {
@@ -150,75 +182,119 @@ class DatosInicialesActivity : AppCompatActivity() {
 
     private fun aplicarEstiloSeleccionadoMultiple(selected: TextView, others: List<TextView>) {
         selected.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip_selected)
-        others.forEach {
-            it.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip)
-        }
+        others.forEach { it.background = ContextCompat.getDrawable(this, R.drawable.bg_profile_chip) }
     }
 
-    private fun guardarPerfil() {
+    private fun validarYEnviar() {
         val edad = txtEdad.text.toString().trim()
         val altura = txtAltura.text.toString().trim()
         val pesoActual = txtPesoActual.text.toString().trim()
 
         var isValid = true
 
+        // Validación de edad
         if (edad.isEmpty()) {
-            lblEdad.error = "La edad es requerida"
-            isValid = false
-        } else if (edad.toIntOrNull() == null || edad.toInt() < 15 || edad.toInt() > 120) {
-            lblEdad.error = "Ingresa una edad válida (15-120 años)"
+            lblEdad.error = "Requerido"
             isValid = false
         } else {
-            lblEdad.error = null
+            try {
+                val edadInt = edad.toInt()
+                if (edadInt < 1 || edadInt > 120) {
+                    lblEdad.error = "Edad inválida (1-120 años)"
+                    isValid = false
+                } else {
+                    lblEdad.error = null
+                }
+            } catch (e: NumberFormatException) {
+                lblEdad.error = "Ingresa un número válido"
+                isValid = false
+            }
         }
 
+        // ✅ VALIDACIÓN DE ALTURA - SIN DECIMALES
         if (altura.isEmpty()) {
-            lblAltura.error = "La altura es requerida"
-            isValid = false
-        } else if (altura.toDoubleOrNull() == null || altura.toDouble() < 50 || altura.toDouble() > 250) {
-            lblAltura.error = "Ingresa una altura válida (50-250 cm)"
+            lblAltura.error = "Requerido"
             isValid = false
         } else {
-            lblAltura.error = null
+            // Verificar si contiene punto o coma (decimales)
+            if (altura.contains(".") || altura.contains(",")) {
+                lblAltura.error = "No se aceptan decimales. Usa números enteros (cm)"
+                isValid = false
+            } else {
+                try {
+                    val alturaInt = altura.toInt()
+                    if (alturaInt < 50 || alturaInt > 300) {
+                        lblAltura.error = "Altura inválida (50-300 cm)"
+                        isValid = false
+                    } else {
+                        lblAltura.error = null
+                    }
+                } catch (e: NumberFormatException) {
+                    lblAltura.error = "Ingresa un número entero válido"
+                    isValid = false
+                }
+            }
         }
 
+        // Validación de peso actual
         if (pesoActual.isEmpty()) {
-            lblPesoActual.error = "El peso es requerido"
-            isValid = false
-        } else if (pesoActual.toDoubleOrNull() == null || pesoActual.toDouble() < 20 || pesoActual.toDouble() > 500) {
-            lblPesoActual.error = "Ingresa un peso válido (20-500 lb)"
+            lblPesoActual.error = "Requerido"
             isValid = false
         } else {
-            lblPesoActual.error = null
+            try {
+                val pesoInt = pesoActual.toInt()
+                if (pesoInt < 20 || pesoInt > 500) {
+                    lblPesoActual.error = "Peso inválido (20-500 lb)"
+                    isValid = false
+                } else {
+                    lblPesoActual.error = null
+                }
+            } catch (e: NumberFormatException) {
+                lblPesoActual.error = "Ingresa un número válido"
+                isValid = false
+            }
         }
 
+        // Validación de selecciones
         if (generoSeleccionado == null) {
             mostrarToastError("Selecciona tu género")
             isValid = false
         }
-
         if (actividadSeleccionada == null) {
-            mostrarToastError("Selecciona tu nivel de actividad física")
+            mostrarToastError("Selecciona tu nivel de actividad")
             isValid = false
         }
-
         if (objetivoSeleccionado == null) {
-            mostrarToastError("Selecciona tu objetivo personal")
+            mostrarToastError("Selecciona tu objetivo")
             isValid = false
         }
 
         if (isValid) {
-            // Aquí guardarías los datos en SharedPreferences o Base de Datos
-            mostrarToastExitoso("✓ Perfil completado exitosamente")
+            val nombre = intent.getStringExtra("EXTRA_NOMBRE") ?: ""
+            val email = intent.getStringExtra("EXTRA_EMAIL") ?: ""
+            val password = intent.getStringExtra("EXTRA_PASSWORD") ?: ""
 
-            Handler(Looper.getMainLooper()).postDelayed({
-                val intent = Intent(this, InicioActivity::class.java)
-                startActivity(intent)
-                finishAffinity()
-            }, 1500)
+            val caloriasBase = 2000.0
+
+            val request = RegisterRequest(
+                fullName = nombre,
+                email = email,
+                password = password,
+                age = edad.toInt(),
+                heightCm = altura.toInt(),
+                currentWeightLb = pesoActual.toInt(),
+                gender = generoSeleccionado!!,
+                physicalActivity = actividadSeleccionada!!,
+                personalGoal = objetivoSeleccionado!!,
+                dailyCalorieGoalKcal = caloriasBase
+            )
+
+            btnGuardarPerfil.isEnabled = false
+            btnGuardarPerfil.text = "Cargando..."
+
+            authViewModel.register(request)
         }
     }
-
     @Suppress("DEPRECATION")
     private fun mostrarToastExitoso(mensaje: String) {
         val layout = LinearLayout(this).apply {
@@ -226,13 +302,11 @@ class DatosInicialesActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setPadding(60, 20, 60, 20)
         }
-
         val background = android.graphics.drawable.GradientDrawable().apply {
             setColor(ContextCompat.getColor(this@DatosInicialesActivity, R.color.success_green))
             cornerRadius = 32f
         }
         layout.background = background
-
         val textView = TextView(this).apply {
             text = mensaje
             setTextColor(ContextCompat.getColor(this@DatosInicialesActivity, android.R.color.white))
@@ -240,18 +314,12 @@ class DatosInicialesActivity : AppCompatActivity() {
             setTypeface(android.graphics.Typeface.DEFAULT_BOLD)
             gravity = Gravity.CENTER
         }
-
         layout.addView(textView)
-
         val toast = Toast(applicationContext)
         toast.duration = Toast.LENGTH_SHORT
         toast.view = layout
         toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
         toast.show()
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            toast.cancel()
-        }, 1000)
     }
 
     @Suppress("DEPRECATION")
@@ -261,13 +329,11 @@ class DatosInicialesActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             setPadding(60, 20, 60, 20)
         }
-
         val background = android.graphics.drawable.GradientDrawable().apply {
             setColor(ContextCompat.getColor(this@DatosInicialesActivity, android.R.color.holo_red_dark))
             cornerRadius = 32f
         }
         layout.background = background
-
         val textView = TextView(this).apply {
             text = mensaje
             setTextColor(ContextCompat.getColor(this@DatosInicialesActivity, android.R.color.white))
@@ -275,17 +341,11 @@ class DatosInicialesActivity : AppCompatActivity() {
             setTypeface(android.graphics.Typeface.DEFAULT_BOLD)
             gravity = Gravity.CENTER
         }
-
         layout.addView(textView)
-
         val toast = Toast(applicationContext)
         toast.duration = Toast.LENGTH_SHORT
         toast.view = layout
         toast.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL, 0, 80)
         toast.show()
-
-        Handler(Looper.getMainLooper()).postDelayed({
-            toast.cancel()
-        }, 1500)
     }
 }

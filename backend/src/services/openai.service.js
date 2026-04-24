@@ -16,8 +16,13 @@ function buildFoodAnalysisPrompt({ photoTakenTime, userProfile }) {
     JSON.stringify(userProfile),
     `Hora en que se tomo la foto (HH:mm): ${photoTakenTime}`,
     "Determina mealType segun la hora y el tipo de plato.",
-    "Responde SOLO JSON valido con esta estructura exacta:",
+    "PRIMERO, determina si la imagen contiene comida real (platos, alimentos, bebidas, ingredientes).",
+    "Si la imagen NO contiene comida (ej: persona, paisaje, documento, objeto, animal, selfie, etc.), responde con:",
+     '{ "isFood": false, "message": "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida." }',
+     "",
+    "Si la imagen SI contiene comida, responde SOLO JSON valido con esta estructura exacta:",
     "{",
+    '  "isFood": true,',
     '  "dishes": [{"name":"string","estimatedPortion":"string"}],',
     '  "plateAnalysis": "string",',
     '  "nutrition": {',
@@ -32,14 +37,16 @@ function buildFoodAnalysisPrompt({ photoTakenTime, userProfile }) {
   ].join("\n");
 }
 
+
 function buildDailyGoalPrompt(userProfile) {
   return [
     "Eres un nutricionista profesional.",
-    "Calcula la meta diaria de calorias (kcal) para este usuario segun su perfil.",
+    "Calcula la meta diaria de calorias (kcal) y macronutrientes (proteinas, carbohidratos, grasas) para este usuario segun su perfil.",
     "Entrega SOLO JSON valido con esta estructura exacta:",
-    '{ "dailyCalorieGoalKcal": 0, "rationale": "string" }',
+    '{ "dailyCalorieGoalKcal": 0, "dailyProteinGoalGrams": 0, "dailyCarbsGoalGrams": 0, "dailyFatGoalGrams": 0, "rationale": "string" }',
     "Reglas:",
-    "- dailyCalorieGoalKcal debe ser entero positivo.",
+    "- Todas las metas deben ser enteros positivos.",
+    "- Asegurate de que la suma calórica de los macros sea coherente con la meta calórica total (Aprox 4kcal/g proteina/carbos, 9kcal/g grasa).",
     "- rationale debe ser breve.",
     JSON.stringify(userProfile),
   ].join("\n");
@@ -114,6 +121,9 @@ async function calculateDailyCalorieGoal(userProfile) {
 
   return {
     dailyCalorieGoalKcal: Math.round(parsed.dailyCalorieGoalKcal),
+    dailyProteinGoalGrams: Math.round(parsed.dailyProteinGoalGrams || (parsed.dailyCalorieGoalKcal * 0.25 / 4)),
+    dailyCarbsGoalGrams: Math.round(parsed.dailyCarbsGoalGrams || (parsed.dailyCalorieGoalKcal * 0.45 / 4)),
+    dailyFatGoalGrams: Math.round(parsed.dailyFatGoalGrams || (parsed.dailyCalorieGoalKcal * 0.30 / 9)),
     rationale: typeof parsed.rationale === "string" ? parsed.rationale : "",
     rawResponse: response,
   };
@@ -143,6 +153,17 @@ async function analyzeFoodImageBuffer(imageBuffer, mimeType, options = {}) {
   const rawText = extractTextResponse(response);
   const parsed = parseJsonResponse(rawText, "OpenAI no devolvio JSON valido para el analisis de comida.");
 
+ // Validar si la imagen no es comida
+  if (parsed.isFood === false) {
+    return {
+      isFood: false,
+      message: parsed.message || "La imagen no parece ser de comida. Por favor, toma una foto de tu plato de comida.",
+      parsed: null,
+      rawResponse: response
+    };
+  }
+
+  // Si es comida, validar estructura normal
   if (!parsed?.nutrition || !Array.isArray(parsed?.dishes) || !parsed?.mealType) {
     throw new Error("Respuesta de OpenAI sin estructura nutrimental esperada.");
   }
@@ -172,7 +193,7 @@ async function analyzeFoodImageBuffer(imageBuffer, mimeType, options = {}) {
     mealType: normalizeMealType(parsed.mealType),
   };
 
-  return { parsed: normalizedParsed, rawResponse: response };
+  return { isFood: true, parsed: normalizedParsed, message: null, rawResponse: response };
 }
 
 module.exports = { analyzeFoodImageBuffer, calculateDailyCalorieGoal };

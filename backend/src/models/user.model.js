@@ -6,6 +6,7 @@ const todayNutritionSummarySchema = new mongoose.Schema(
     proteinGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
     carbsGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
     fatGramsConsumed: { type: Number, required: true, default: 0, min: 0 },
+    caloriesConsumed: { type: Number, required: true, default: 0, min: 0 }
   },
   { _id: false }
 );
@@ -74,8 +75,23 @@ const userSchema = new mongoose.Schema(
     },
     dailyCalorieGoalKcal: {
       type: Number,
-      required: true,
       min: 0,
+      default: 2000
+    },
+    dailyProteinGoalGrams: {
+      type: Number,
+      min: 0,
+      default: 150
+    },
+    dailyCarbsGoalGrams: {
+      type: Number,
+      min: 0,
+      default: 200
+    },
+    dailyFatGoalGrams: {
+      type: Number,
+      min: 0,
+      default: 80
     },
     todayNutritionSummary: {
       type: todayNutritionSummarySchema,
