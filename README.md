@@ -487,9 +487,24 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 ---
 
-## 👨‍💻 Autor
+## 👨‍💻 Autor y Equipo
 
-**AleH14** - [@AleH14](https://github.com/AleH14)
+### Líderes del Proyecto
+
+| Nombre | Usuario GitHub | Rol |
+|--------|----------------|-----|
+| **Alejandro Hernández** | [@AleH14](https://github.com/AleH14) | 🔴 Project Lead, Full Stack |
+| **Melissa Flores** | [@MelissaFloresA](https://github.com/MelissaFloresA) | 🟣 UI/UX Design, Frontend |
+| **César Guzmán** | [@CDGR23](https://github.com/CDGR23) | 🔵 Backend, API Development |
+| **Wendy Aguilar** | [@marcelavasquez11](https://github.com/marcelavasquez11) | 🟢 Database Design, DevOps |
+
+### Contribuciones por Área
+
+- **Frontend (Android)**: Melissa Flores, Alejandro Hernández
+- **Backend (Node.js/Express)**: César Guzmán, Alejandro Hernández
+- **Base de Datos (MongoDB)**: Wendy Aguilar, Alejandro Hernández
+- **Integración IA (OpenAI)**: Alejandro Hernández, César Guzmán
+- **Diseño y UX**: Melissa Flores
 
 ---
 
@@ -497,7 +512,7 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 - 🐛 [Reportar Bugs](https://github.com/AleH14/NutriVision/issues)
 - 💡 [Solicitar Características](https://github.com/AleH14/NutriVision/issues)
-- 📧 Contacto: Ver perfil de GitHub
+- 📧 Contacto: Ver perfiles de GitHub de los miembros del equipo
 
 ---
 
@@ -510,6 +525,7 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 - [ ] Dashboard web para análisis detallados
 - [ ] Exportación de reportes en PDF
 - [ ] Integración con nutricionistas
+- [ ] Soporte para múltiples idiomas
 
 ---
 
@@ -518,6 +534,7 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 - [OpenAI](https://openai.com/) por GPT-4 y Computer Vision
 - [MongoDB](https://www.mongodb.com/) por la base de datos flexible
 - [Google](https://developer.android.com/) por Android y CameraX
+- [Node.js](https://nodejs.org/) y [Express](https://expressjs.com/)
 - La comunidad open source
 
 ---
@@ -526,6 +543,6 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 **⭐ Si este proyecto te fue útil, considera dejar una estrella!**
 
-Hecho con ❤️ por AleH14
+Hecho con ❤️ por el equipo NutriVision
 
 </div>
