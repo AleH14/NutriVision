@@ -104,7 +104,7 @@ MONGODB_URI=mongodb://localhost:27017/nutrivision
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-41
+OPENAI_MODEL=gpt-4.1
 
 ```
 
