@@ -104,10 +104,8 @@ MONGODB_URI=mongodb://localhost:27017/nutrivision
 
 # OpenAI
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-41
 
-# Client
-CLIENT_URL=http://localhost:3000
 ```
 
 **Iniciar el servidor:**
@@ -338,7 +336,7 @@ Obtiene el historial de análisis nutricionales del usuario.
                   ▼                         ▼
         ┌──────────────────┐      ┌─────────────────┐
         │   OpenAI API     │      │    MongoDB      │
-        │  (GPT-4o-mini)   │      │   NoSQL DB      │
+        │  (GPT-41 )       │      │   NoSQL DB      │
         │                  │      │                 │
         │ Image Analysis   │      │ - Users         │
         │ Nutrition Facts  │      │ - Analyses      │
@@ -491,20 +489,13 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 ### Líderes del Proyecto
 
-| Nombre | Usuario GitHub | Rol |
-|--------|----------------|-----|
-| **Alejandro Hernández** | [@AleH14](https://github.com/AleH14) | 🔴 Project Lead, Full Stack |
-| **Melissa Flores** | [@MelissaFloresA](https://github.com/MelissaFloresA) | 🟣 UI/UX Design, Frontend |
-| **César Guzmán** | [@CDGR23](https://github.com/CDGR23) | 🔵 Backend, API Development |
-| **Wendy Aguilar** | [@marcelavasquez11](https://github.com/marcelavasquez11) | 🟢 Database Design, DevOps |
+| Nombre | Usuario GitHub |
+|--------|----------------|
+| **Alejandro Hernández** | [@AleH14](https://github.com/AleH14) |
+| **Melissa Flores** | [@MelissaFloresA](https://github.com/MelissaFloresA) |
+| **César Guzmán** | [@CDGR23](https://github.com/CDGR23) |
+| **Wendy Aguilar** | [@marcelavasquez11](https://github.com/marcelavasquez11) |
 
-### Contribuciones por Área
-
-- **Frontend (Android)**: Melissa Flores, Alejandro Hernández
-- **Backend (Node.js/Express)**: César Guzmán, Alejandro Hernández
-- **Base de Datos (MongoDB)**: Wendy Aguilar, Alejandro Hernández
-- **Integración IA (OpenAI)**: Alejandro Hernández, César Guzmán
-- **Diseño y UX**: Melissa Flores
 
 ---
 
@@ -516,33 +507,7 @@ Este proyecto está bajo la licencia MIT. Ver archivo [LICENSE](LICENSE) para m�
 
 ---
 
-## 🗺️ Roadmap
 
-- [ ] Integración con Fitbit/Apple Health
-- [ ] Análisis de macronutrientes más precisos
-- [ ] Reconocimiento offline mejorado
-- [ ] App iOS
-- [ ] Dashboard web para análisis detallados
-- [ ] Exportación de reportes en PDF
-- [ ] Integración con nutricionistas
-- [ ] Soporte para múltiples idiomas
 
----
-
-## 🌟 Agradecimientos
-
-- [OpenAI](https://openai.com/) por GPT-4 y Computer Vision
-- [MongoDB](https://www.mongodb.com/) por la base de datos flexible
-- [Google](https://developer.android.com/) por Android y CameraX
-- [Node.js](https://nodejs.org/) y [Express](https://expressjs.com/)
-- La comunidad open source
-
----
-
-<div align="center">
-
-**⭐ Si este proyecto te fue útil, considera dejar una estrella!**
-
-Hecho con ❤️ por el equipo NutriVision
 
 </div>
